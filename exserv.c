@@ -1,12 +1,3 @@
-/* servTCPConcTh2.c - Exemplu de server TCP concurent care deserveste clientii
-   prin crearea unui thread pentru fiecare client.
-   Asteapta un numar de la clienti si intoarce clientilor numarul incrementat.
-	Intoarce corect identificatorul din program al thread-ului.
-  
-   
-   Autor: Lenuta Alboaie  <adria@infoiasi.ro> (c)2009
-*/
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -46,7 +37,7 @@ void creareTabele(){
     else
         printf("Baza de date a fost deschisa cu succes\n");
     //creare tabele
-    sql = "CREATE TABLE IF NOT EXISTS UtilizatoriInregistrati (user_ID INTEGER PRIMARY KEY AUTOINCREMENT, nume_user TEXT, parola TEXT);";
+    sql = "CREATE TABLE IF NOT EXISTS UtilizatoriInregistrati (user_ID INTEGER PRIMARY KEY NOT NULL, nume_user TEXT NOT NULL, parola TEXT NOT NULL);";
 	rc = sqlite3_exec(db, sql, 0, 0, &err_msg );
 	if(rc != SQLITE_OK)
 	{
@@ -56,7 +47,7 @@ void creareTabele(){
 	}
 	else fprintf(stdout, "Tabela UtilizatoriInregistrati s-a creat cu succes!\n");
 	
-	sql = "CREATE TABLE IF NOT EXISTS UtilizatoriAutentificati (user_ID INTEGER PRIMARY KEY AUTOINCREMENT, username varchar(100));";
+	sql = "CREATE TABLE IF NOT EXISTS UtilizatoriAutentificati (user_ID INTEGER PRIMARY KEY, username varchar(100));";
 	rc = sqlite3_exec(db, sql, 0, 0, &err_msg );
 		if(rc != SQLITE_OK)
 		{
@@ -65,7 +56,7 @@ void creareTabele(){
 		}
 	else fprintf(stdout, "Tabela UtilizatoriAutentificati s-a creat cu succes!\n");
 /*
-        sql = "CREATE TABLE IF NOT EXISTS Mesaje(mesaj_ID INTEGER PRIMARY KEY AUTOINCREMENT, expeditor varchar(100), destinatar varchar(100), continut_mesaj varchar(100));";
+        sql = "CREATE TABLE IF NOT EXISTS Mesaje(mesaj_ID INTEGER PRIMARY KEY, expeditor varchar(100), destinatar varchar(100), continut_mesaj varchar(100));";
 	rc=sqlite3_exec(db, sql, 0 ,0, &err_msg);
 	if(rc != SQLITE_OK)
 	{
@@ -74,7 +65,7 @@ void creareTabele(){
 	}
 	else fprintf(stdout, "Tabela Mesaje s-a creat cu succes!\n");
  
-        sql = "CREATE TABLE IF NOT EXISTS MesajeNoi(mesaj_ID INTEGER PRIMARY KEY AUTOINCREMENT, expeditor varchar(100), destinatar varchar(100), continut_mesaj varchar(100));";
+        sql = "CREATE TABLE IF NOT EXISTS MesajeNoi(mesaj_ID INTEGER PRIMARY KEY, expeditor varchar(100), destinatar varchar(100), continut_mesaj varchar(100));";
 	rc = sqlite3_exec(db, sql, 0, 0, &err_msg );
 	if(rc != SQLITE_OK)
 	{
@@ -84,7 +75,7 @@ void creareTabele(){
 	else fprintf(stdout, "Tabela MesajeNoi s-a creat cu succes!\n");
 */
 }
-
+/*
 void Inregistrare(char* nume_user, char* parola)
 {
 	sqlite3 *db;
@@ -99,7 +90,7 @@ void Inregistrare(char* nume_user, char* parola)
 	{
 		printf("BD e gata de folosire; incerc sa inregistrez userul\n");
 		char* sql = "INSERT INTO UtilizatoriInregistrati (nume_user, parola) VALUES (?, ?);";
-		int rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);//compiling statement into
+		int rc = sqlite3_prepare_v2(db, sql, -1, &res, NULL);//compiling statement into
   //a byte code before execution
 		if (rc != SQLITE_OK ) {
 			fprintf(stderr, "SQL error: %s\n", err_msg);
@@ -109,8 +100,14 @@ void Inregistrare(char* nume_user, char* parola)
 		else //if (rc == SQLITE_OK)
 		{ 
 			printf("Inregistraaaaaaam...\n");
-			sqlite3_bind_blob(res, 2, nume_user, strlen(nume_user), SQLITE_TRANSIENT); // store application data into parameters 
-			sqlite3_bind_blob(res, 3, parola, strlen(parola),  SQLITE_TRANSIENT);
+			//sqlite3_bind_blob(res, 2, nume_user, strlen(nume_user), SQLITE_TRANSIENT); // store application data into parameters 
+			//sqlite3_bind_blob(res, 3, parola, strlen(parola),  SQLITE_TRANSIENT);
+			if(sqlite3_bind_text(res, 2, nume_user, strlen(nume_user), SQLITE_TRANSIENT) != SQLITE_OK){
+				printf("nu e ceva ok cu numele\n");
+			}
+			if(sqlite3_bind_text(res, 3, parola, strlen(parola), SQLITE_TRANSIENT) != SQLITE_OK){
+				printf("nu e ceva ok cu numele\n");
+			}
 			if(sqlite3_step(res) != SQLITE_DONE){
 				printf("execution failed: %s", sqlite3_errmsg(db));
 			}
@@ -118,8 +115,8 @@ void Inregistrare(char* nume_user, char* parola)
 			printf("Inregistrarea a avut loc cu succes!\n");
 		}
 	}
-}
-/*
+} */
+
 void Inregistrare(char* nume_user, char* parola)
 {
 	sqlite3 *db;
@@ -130,7 +127,8 @@ void Inregistrare(char* nume_user, char* parola)
 		fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 	}
-	char* sql = "INSERT INTO UtilizatoriInregistrati (nume_user, parola) VALUES (?2, ?3);";
+	char sql[256];
+	sprintf(sql, "INSERT INTO UtilizatoriInregistrati (nume_user, parola) VALUES ('%s', '%s');", nume_user, parola);
 	int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
 	//allows an application to run multiple sql stmts without having to use a lot of C code
 	if (rc != SQLITE_OK ) {
@@ -143,7 +141,7 @@ void Inregistrare(char* nume_user, char* parola)
     else printf("Inregistrarea a avut loc cu succes!\n");
     sqlite3_close(db);
 }
-*/
+
 
 int main ()
 {
@@ -246,15 +244,15 @@ void raspunde(void *arg)
 {
 	char raspuns[1000];
 	char mesaj[1000];
-	char nume_user[20];
+	char nume_user[25];
     char parola[25];
     int nr, i=0;
 	struct thData tdL; 
 	tdL= *((struct thData*)arg);
 	while(1){
-		bzero(raspuns, 1000);
-		bzero(nume_user, 20);
-		bzero(parola, 25);
+		bzero(raspuns, sizeof(raspuns));
+		bzero(nume_user, sizeof(nume_user));
+		bzero(parola, sizeof(parola));
 		fflush (stdout);
 		// citirea mesajului 
         if(read(tdL.cl, &raspuns, sizeof(raspuns)) <=0){
@@ -264,25 +262,27 @@ void raspunde(void *arg)
         if (strlen(raspuns) == 0)
             break;
         printf("[Thread %d]Mesajul a fost receptionat...%s\n", tdL.idThread, raspuns);
+//---------------------------------------INREGISTRARE----------------------------------------
 		if (strcmp(raspuns, "Inregistrare") == 0)
         {
 			printf("Vrea sa se inregistreze...\n");
-			if(read(tdL.cl, nume_user, sizeof(nume_user)) <=0){
+			if(read(tdL.cl, &nume_user, sizeof(nume_user)) <=0){
 				printf("[Thread %d]\n",tdL.idThread);
 				perror ("Eroare la read() de la client.\n");
 			}
-			printf("Numele primit este: %s\n", nume_user);
-			if(read(tdL.cl, parola, sizeof(parola)) <=0){
+			else printf("Numele primit este: %s\n", nume_user);
+			if(read(tdL.cl, &parola, sizeof(parola)) <=0){
 				printf("[Thread %d]\n",tdL.idThread);
 				perror ("Eroare la read() de la client.\n");
 			}
-			printf("Parola primita este: %s\n", parola);
+			else printf("Parola primita este: %s\n", parola);
             Inregistrare(nume_user, parola);
-        }
+        } else 
+//---------------------------------------AUTENTIFICARE----------------------------------------
         if (strcmp(raspuns, "Autentificare") == 0)
         {
             printf("Vrea sa se autentifice...\n");
-        }
+        }else printf("Comanda introdusa nu este recunoscuta. Incercati din nou!\n");
 		/*
 		
 					
