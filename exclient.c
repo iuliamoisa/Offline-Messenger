@@ -1,8 +1,3 @@
-/* cliTCPIt.c - Exemplu de client TCP
-   Trimite un numar la server; primeste de la server numarul incrementat.
-         
-   Autor: Lenuta Alboaie  <adria@infoiasi.ro> (c)2009
-*/
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -26,7 +21,8 @@ int main (int argc, char *argv[])
   		// mesajul trimis
   int nr=0;
   char comanda[1000], raspuns[1000];
-
+  char nume_user[25];
+  char parola[25];
   /* exista toate argumentele in linia de comanda? */
   if (argc != 3)
     {
@@ -65,10 +61,10 @@ int main (int argc, char *argv[])
   /* citirea mesajului */
   while(1){
     printf("Buna! Alege una din optiuni: \nInregistrare \nAutentificare \nIesire\n");
-    bzero(comanda, 1000);
-        scanf("%s", comanda);
+    bzero(comanda, sizeof(comanda));
+    scanf("%s", comanda);
      // trimiterea mesajului la server 
-    if(write(sd, comanda, sizeof(comanda)) <= 0){
+    if(write(sd, &comanda, sizeof(comanda)) <= 0){
         perror ("[client]Eroare la write() spre server.\n");
         return errno;
     }
@@ -76,10 +72,10 @@ int main (int argc, char *argv[])
     if (strcmp(comanda, "Inregistrare") == 0 || strcmp(comanda, "Autentificare") == 0)
         {
             printf("username:");
-            char nume_user[20];
-            char parola[25];
+            bzero(nume_user, sizeof(nume_user));
             scanf("%s", nume_user);
             printf("password:");
+            bzero(parola, sizeof(parola));
             scanf("%s", parola);
             if(write(sd, &nume_user, sizeof(nume_user)) <= 0){
                     perror ("[client]Eroare la write() spre server.\n");
@@ -91,7 +87,7 @@ int main (int argc, char *argv[])
                 }
 
             bzero(raspuns, sizeof(raspuns));
-            if (read (sd, raspuns, sizeof(raspuns)) < 0)
+            if (read (sd, &raspuns, sizeof(raspuns)) < 0)
             {
               perror ("[client]Eroare la read() de la server.\n");
               return errno;
