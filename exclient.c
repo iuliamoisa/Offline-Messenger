@@ -60,7 +60,7 @@ int main (int argc, char *argv[])
     
   /* citirea mesajului */
   while(1){
-    printf("Buna! Alege una din optiuni: \nInregistrare \nAutentificare \nIesire\n");
+    printf("Alegeti una din optiuni: \nInregistrare \nAutentificare \nIesire\n~ ~ ~\n");
     bzero(comanda, sizeof(comanda));
     scanf("%s", comanda);
      // trimiterea mesajului la server 
@@ -92,6 +92,7 @@ int main (int argc, char *argv[])
               perror ("[client]Eroare la read() de la server.\n");
               return errno;
             }
+            else printf("%s\n", raspuns);
         }
 /*
 
