@@ -41,7 +41,7 @@ void creareTabele(){
 	rc = sqlite3_exec(db, sql, 0, 0, &err_msg );
 	if(rc != SQLITE_OK)
 	{
-		fprintf(stderr, "SQL error: %s\n", err_msg );
+		fprintf(stderr, "Eroare la crearea tabelei1: %s\n", err_msg );
 		sqlite3_free(err_msg);//The allocated message string must be freed 
 		sqlite3_close(db);
 	}
@@ -51,7 +51,7 @@ void creareTabele(){
 	rc = sqlite3_exec(db, sql, 0, 0, &err_msg );
 		if(rc != SQLITE_OK)
 		{
-			fprintf(stderr, "SQL error: %s\n",err_msg );
+			fprintf(stderr, "Eroare la crearea tabelei2: %s\n",err_msg );
 			sqlite3_free(err_msg );
 		}
 	else fprintf(stdout, "Tabela UtilizatoriAutentificati s-a creat cu succes!\n");
@@ -117,31 +117,61 @@ void Inregistrare(char* nume_user, char* parola)
 	}
 } */
 
-void Inregistrare(char* nume_user, char* parola)
+int Inregistrare(char* nume_user, char* parola)
 {
 	sqlite3 *db;
 	sqlite3_stmt * res;//a single sql statement
 	char *err_msg = 0;
+	int ok = 0;
 	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK)
 	{
-		fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
+		fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 	}
 	char sql[256];
 	sprintf(sql, "INSERT INTO UtilizatoriInregistrati (nume_user, parola) VALUES ('%s', '%s');", nume_user, parola);
 	int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
 	//allows an application to run multiple sql stmts without having to use a lot of C code
-	if (rc != SQLITE_OK ) {
-        
-        fprintf(stderr, "SQL error: %s\n", err_msg);
-        
+	if (rc != SQLITE_OK) {
+        fprintf(stderr, "Eroare la inregistrare: %s\n", err_msg);
         sqlite3_free(err_msg);        
         sqlite3_close(db);
     } 
-    else printf("Inregistrarea a avut loc cu succes!\n");
-    sqlite3_close(db);
+    else {
+			ok = 1;
+			printf("Inregistrarea a avut loc cu succes!\n");
+			sqlite3_close(db);
+		}
+	return ok;
 }
+  static int callback(
+    char **value_of_count, /* will be either 0 or 1 in this case */
+    char **label_for_count) { /* will be COUNT(*) normally,
+                 but modified via 'AS table_tablename' in this case*/
+      printf("COUNT(*) %s\t=>\t%s\n", label_for_count[0], value_of_count[0] );
+      return 0;
+    }
+int UtilizatorExistent(char* nume_user){
+	int rc, ok = 0;
+    sqlite3_stmt *res;
+	sqlite3 *db;
+	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK)
+	{
+		fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+	}
+	else {
+		sqlite3_prepare_v2(db, "SELECT nume_user, parola FROM UtilizatoriInregistrati WHERE nume_user = ?2;", -1, &res, NULL);
+		
+		sqlite3_bind_text(res, 2, nume_user, -1, SQLITE_STATIC);
 
+		if((rc = sqlite3_step(res)) == SQLITE_ROW)
+			ok = 1; //Acest utilizator exista deja!")
+		sqlite3_finalize(res);
+    	sqlite3_close(db);
+		return ok;
+	}
+}
 
 int main ()
 {
@@ -276,7 +306,30 @@ void raspunde(void *arg)
 				perror ("Eroare la read() de la client.\n");
 			}
 			else printf("Parola primita este: %s\n", parola);
-            Inregistrare(nume_user, parola);
+
+			if(UtilizatorExistent(nume_user))//add ceva limita de nr caractere?ma mai gandesc
+			{
+				bzero(raspuns, sizeof(raspuns));
+				strcpy(raspuns, "Inregistrarea cu acest username nu este permisa!!\n");
+				if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
+					{
+					printf("[Thread %d] ",tdL.idThread);
+					perror ("[Thread]Eroare la write() catre client.\n");
+					}
+				else
+					printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);	
+			}		
+            else if(Inregistrare(nume_user, parola) == 1) {
+				bzero(raspuns, sizeof(raspuns));
+				strcpy(raspuns, "V-ati inregistrat cu succes! \n");
+				if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
+					{
+					printf("[Thread %d] ",tdL.idThread);
+					perror ("[Thread]Eroare la write() catre client.\n");
+					}
+				else
+					printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);	
+			}
         } else 
 //---------------------------------------AUTENTIFICARE----------------------------------------
         if (strcmp(raspuns, "Autentificare") == 0)
