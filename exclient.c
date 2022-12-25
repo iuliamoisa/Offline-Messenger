@@ -20,7 +20,7 @@ int main (int argc, char *argv[])
   struct sockaddr_in server;	// structura folosita pentru conectare 
   		// mesajul trimis
   int nr=0;
-  char comanda[1000], raspuns[1000];
+  char comanda[50], raspuns[1000];
   char nume_user[25];
   char parola[25];
   /* exista toate argumentele in linia de comanda? */
@@ -56,12 +56,13 @@ int main (int argc, char *argv[])
     }
 
     printf("\n\nOFFLINE MESSENGER\n\n");
-    printf("---Bine ati venit!---\n");
+    printf("--- Bine ati venit! ---\n");
     
   /* citirea mesajului */
   while(1){
     printf("Alegeti una din optiuni: \nInregistrare \nAutentificare \nIesire\n~ ~ ~\n");
     bzero(comanda, sizeof(comanda));
+    fflush (stdout);
     scanf("%s", comanda);
      // trimiterea mesajului la server 
     if(write(sd, &comanda, sizeof(comanda)) <= 0){
@@ -69,24 +70,27 @@ int main (int argc, char *argv[])
         return errno;
     }
 
-    if (strcmp(comanda, "Inregistrare") == 0 || strcmp(comanda, "Autentificare") == 0)
+    if (strcmp(comanda, "Inregistrare") == 0)
         {
-            printf("username:");
+            printf("\n- Completati datele necesare crearii contului dumneavoastra.\n");
+            printf("-- Nume utilizator:");;
             bzero(nume_user, sizeof(nume_user));
-            scanf("%s", nume_user);
-            printf("password:");
             bzero(parola, sizeof(parola));
+            fflush (stdout);
+            scanf("%s", nume_user);
+            printf("-- Parola:");
             scanf("%s", parola);
             if(write(sd, &nume_user, sizeof(nume_user)) <= 0){
-                    perror ("[client]Eroare la write() spre server.\n");
+                    perror ("[client]Eroare la trimitere username spre server.\n");
                     return errno;
                 }
             if(write(sd, &parola, sizeof(parola)) <= 0){
-                    perror ("[client]Eroare la write() spre server.\n");
+                    perror ("[client]Eroare la trimitere parola spre server.\n");
                     return errno;
                 }
 
             bzero(raspuns, sizeof(raspuns));
+            fflush (stdout);
             if (read (sd, &raspuns, sizeof(raspuns)) < 0)
             {
               perror ("[client]Eroare la read() de la server.\n");
@@ -94,16 +98,45 @@ int main (int argc, char *argv[])
             }
             else printf("%s\n", raspuns);
         }
-/*
+    else if(strcmp(comanda, "Autentificare") == 0){
+        printf("\n- Completati datele corespunzatoare contului dumneavoastra.\n");
+        printf("-- Nume utilizator:");
+        bzero(nume_user, sizeof(nume_user));
+        bzero(parola, sizeof(parola));
+        fflush (stdout);
+        scanf("%s", nume_user);
+        printf("-- Parola:");
+        scanf("%s", parola);
+  //trimitem serverului usernameul si parola
+        if(write(sd, &nume_user, sizeof(nume_user)) <= 0){
+          perror ("[client]Eroare la trimitere username spre server.\n");
+          return errno;
+          }
+        if(write(sd, &parola, sizeof(parola)) <= 0){
+          perror ("[client]Eroare la trimitere parola spre server.\n");
+          return errno;
+        }
 
-    // citirea raspunsului dat de server 
-    //  (apel blocant pina cind serverul raspunde) 
-    
-    // afisam mesajul primit 
-    printf ("[client]Mesajul primit este: %d\n", nr);
- */
-  }
- 
-  /* inchidem conexiunea, am terminat */
+        bzero(raspuns, sizeof(raspuns));//date valide sau nu
+        fflush (stdout);
+        if (read (sd, &raspuns, sizeof(raspuns)) < 0){
+          perror ("[client]Eroare la read() de la server.\n");
+          return errno;
+        }
+          else printf("%s\n", raspuns);
+
+        bzero(raspuns, sizeof(raspuns));//a avut loc autentif sau incearca iar
+        fflush (stdout);
+        if (read (sd, &raspuns, sizeof(raspuns)) < 0){
+          perror ("[client]Eroare la read() de la server.\n");
+          return errno;
+        }
+          else printf("%s\n", raspuns);
+    }
+    else if(strcmp(comanda, "Iesire") == 0)
+        {
+          close(sd);
+          return 0;
+        }
   close (sd);
 }
