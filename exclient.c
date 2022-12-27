@@ -60,7 +60,7 @@ int main (int argc, char *argv[])
     
   /* citirea mesajului */
   while(1){
-    printf("Alegeti una din optiuni: \nInregistrare \nAutentificare \nIesire\n~ ~ ~\n");
+    printf("Alegeti una din optiuni: \nInregistrare \nAutentificare \nIesire \nDeconectare\n~ ~ ~\n");
     bzero(comanda, sizeof(comanda));
     fflush (stdout);
     scanf("%s", comanda);
@@ -73,7 +73,7 @@ int main (int argc, char *argv[])
     if (strcmp(comanda, "Inregistrare") == 0)
         {
             printf("\n- Completati datele necesare crearii contului dumneavoastra.\n");
-            printf("-- Nume utilizator:");;
+            printf("-- Nume utilizator:");
             bzero(nume_user, sizeof(nume_user));
             bzero(parola, sizeof(parola));
             fflush (stdout);
@@ -88,7 +88,7 @@ int main (int argc, char *argv[])
                     perror ("[client]Eroare la trimitere parola spre server.\n");
                     return errno;
                 }
-
+            printf("\n\n");
             bzero(raspuns, sizeof(raspuns));
             fflush (stdout);
             if (read (sd, &raspuns, sizeof(raspuns)) < 0)
@@ -116,27 +116,48 @@ int main (int argc, char *argv[])
           perror ("[client]Eroare la trimitere parola spre server.\n");
           return errno;
         }
-
-        bzero(raspuns, sizeof(raspuns));//date valide sau nu
+        printf("\n\n");
+        bzero(raspuns, sizeof(raspuns));//sunt deja autentificat
         fflush (stdout);
         if (read (sd, &raspuns, sizeof(raspuns)) < 0){
           perror ("[client]Eroare la read() de la server.\n");
           return errno;
         }
           else printf("%s\n", raspuns);
-
-        bzero(raspuns, sizeof(raspuns));//a avut loc autentif sau incearca iar
+/*
+        bzero(raspuns, sizeof(raspuns));//date corecte(autentificare reusita) sau nu
         fflush (stdout);
         if (read (sd, &raspuns, sizeof(raspuns)) < 0){
           perror ("[client]Eroare la read() de la server.\n");
           return errno;
         }
           else printf("%s\n", raspuns);
+  */
     }
+    else if(strcmp(comanda, "Deconectare") == 0)
+        {
+          bzero(raspuns, sizeof(raspuns));//a avut loc autentif sau incearca iar
+          fflush (stdout);
+          if (read (sd, &raspuns, sizeof(raspuns)) < 0){
+            perror ("[client]Eroare la read() de la server.\n");
+            return errno;
+          }
+          else printf("%s\n", raspuns);
+        }
     else if(strcmp(comanda, "Iesire") == 0)
         {
           close(sd);
           return 0;
         }
+    else{//comanda nerecunoscuta
+      bzero(raspuns, sizeof(raspuns));
+			fflush (stdout);
+      if (read (sd, &raspuns, sizeof(raspuns)) < 0){
+            perror ("[client]Eroare la read() de la server.\n");
+            return errno;
+          }
+          else printf("%s\n", raspuns);
+    }
+  }
   close (sd);
 }
