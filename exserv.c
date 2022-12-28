@@ -55,25 +55,23 @@ void creareTabele(){
 			sqlite3_free(err_msg );
 		}
 	else fprintf(stdout, "Tabela UtilizatoriAutentificati s-a creat cu succes!\n");
-/*
-        sql = "CREATE TABLE IF NOT EXISTS Mesaje(mesaj_ID INTEGER PRIMARY KEY, expeditor varchar(100), destinatar varchar(100), continut_mesaj varchar(100));";
+        sql = "CREATE TABLE IF NOT EXISTS Mesaje(mesaj_ID INTEGER PRIMARY KEY, expeditor TEXT NOT NULL, destinatar TEXT NOT NULL, continut_mesaj TEXT NOT NULL);";
 	rc=sqlite3_exec(db, sql, 0 ,0, &err_msg);
 	if(rc != SQLITE_OK)
 	{
-		fprintf(stderr, "SQL error: %s\n",err_msg );
+		fprintf(stderr, "Eroare la crearea tabelei3: %s\n",err_msg );
 		sqlite3_free(err_msg );
 	}
 	else fprintf(stdout, "Tabela Mesaje s-a creat cu succes!\n");
  
-        sql = "CREATE TABLE IF NOT EXISTS MesajeNoi(mesaj_ID INTEGER PRIMARY KEY, expeditor varchar(100), destinatar varchar(100), continut_mesaj varchar(100));";
+        sql = "CREATE TABLE IF NOT EXISTS MesajeNoi(mesaj_ID INTEGER PRIMARY KEY, expeditor TEXT NOT NULL, destinatar TEXT NOT NULL, continut_mesaj TEXT NOT NULL);";
 	rc = sqlite3_exec(db, sql, 0, 0, &err_msg );
 	if(rc != SQLITE_OK)
 	{
-		fprintf(stderr, "SQL error: %s\n",err_msg );
+		fprintf(stderr, "Eroare la crearea tabelei4: %s\n",err_msg );
 		sqlite3_free(err_msg );
 	}
 	else fprintf(stdout, "Tabela MesajeNoi s-a creat cu succes!\n");
-*/
 }
 
 int Inregistrare(char* nume_user, char* parola)
@@ -103,7 +101,68 @@ int Inregistrare(char* nume_user, char* parola)
 		}
 	return ok;
 }
-/*
+
+int Inserare_TabMesaje(char* expeditor, char* destinatar, char* mesaj){
+	//inserare in tabela mesaje -- contine toate mesajele
+	sqlite3 *db;
+	sqlite3_stmt * res;
+	char *err_msg = 0;
+	int ok = 0, rc;
+	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK)
+	{
+		fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+	}
+	char sql[256];
+	sprintf(sql, "INSERT INTO Mesaje (expeditor, destinatar, continut_mesaj) VALUES ('%s', '%s', '%s');", expeditor, destinatar, mesaj);
+	rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+	if (rc != SQLITE_OK) {
+        fprintf(stderr, "Eroare la inserare in Mesaje: %s\n", err_msg);
+        sqlite3_free(err_msg);        
+        //sqlite3_close(db);
+    } 
+    else {
+			ok = 1;
+			printf("Mesajul inserat cu succes in Mesaje!\n");
+			sqlite3_close(db);
+		}
+	return ok;
+}
+int Inserare_TabMesajeNoi(char* expeditor, char* destinatar, char* mesaj){
+	//inserare in tabela mesaje -- contine toate mesajele
+	sqlite3 *db;
+	sqlite3_stmt * res;
+	char *err_msg = 0;
+	int ok = 0, rc;
+	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK)
+	{
+		fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+	}
+	char sql[256];
+	sprintf(sql, "INSERT INTO MesajeNoi (expeditor, destinatar, continut_mesaj) VALUES ('%s', '%s', '%s');", expeditor, destinatar, mesaj);
+	rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+	if (rc != SQLITE_OK) {
+        fprintf(stderr, "Eroare la inserare in MesajeNoi: %s\n", err_msg);
+        sqlite3_free(err_msg);        
+        sqlite3_close(db);
+    } 
+    else {
+			ok = 1;
+			printf("Mesajul inserat cu succes in MesajeNoi!\n");
+			sqlite3_close(db);
+		}
+	return ok;
+}
+
+int Trimite_Mesaj(char* expeditor, char* destinatar, char* mesaj){
+	if(Inserare_TabMesaje(expeditor, destinatar, mesaj) == 0 || Inserare_TabMesajeNoi(expeditor, destinatar, mesaj) == 0)
+		return 0;
+	return 1;
+	
+}
+
+/* CRED CA TREBE STERS ASTA
   static int callback(
     char **value_of_count, // will be either 0 or 1 in this case 
     char **label_for_count) { // will be COUNT(*) normally,
@@ -127,7 +186,7 @@ int UtilizatorExistentDeja(char* nume_user){
 		sqlite3_bind_text(res, 2, nume_user, -1, SQLITE_STATIC);
 
 		if((rc = sqlite3_step(res)) == SQLITE_ROW)
-			ok = 1; //Acest utilizator exista deja!")
+			ok = 1; //Acest utilizator exista deja!
 		sqlite3_finalize(res);
     	sqlite3_close(db);
 		return ok;
@@ -346,15 +405,25 @@ static void *treat(void * arg)
 
 void raspunde(void *arg)
 {
-	char raspuns[1000], comanda[50];
-	char mesaj[1000];
-	char nume_user[25], username[25];
+	char raspuns[1000], comanda[50], mesaj[500];
+	char nume_user[25], username[25], destinatar[25];
     char parola[25];
     int nr, i=0;
 	struct thData tdL; 
 	tdL= *((struct thData*)arg);
 	int autentificat = 0;
 	while(1){
+		if(autentificat == 1){
+			printf("Aici ar trb sa verific daca exista msj noi\n");
+		}
+		if (write (tdL.cl, &autentificat, sizeof(autentificat)) <= 0)
+					{
+					printf("[Thread %d] ",tdL.idThread);
+					perror ("[Thread]Eroare la trimitere stare catre client.\n");
+					}
+				else
+					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
+					//---------------
 		bzero(comanda, sizeof(comanda));
 		bzero(nume_user, sizeof(nume_user));
 		bzero(parola, sizeof(parola));
@@ -396,7 +465,7 @@ void raspunde(void *arg)
 					perror ("[Thread]Eroare la write() catre client.\n");
 					}
 				else
-					printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);	
+					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);	
 			}		
             else if(Inregistrare(nume_user, parola) == 1) {
 				bzero(raspuns, sizeof(raspuns));
@@ -408,7 +477,7 @@ void raspunde(void *arg)
 					perror ("[Thread]Eroare la write() catre client.\n");
 					}
 				else
-					printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);	
+					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);	
 			}
         } else 
 //---------------------------------------AUTENTIFICARE----------------------------------------
@@ -445,7 +514,7 @@ void raspunde(void *arg)
 					perror ("[Thread]Eroare la write() catre client.\n");
 					}
 				else
-					printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);
+					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
 			}
 			else { //poate avea loc autentif; verif daca datele sunt corecte 
 				if(DateValide(nume_user, parola) == 0)
@@ -459,11 +528,13 @@ void raspunde(void *arg)
 						perror ("[Thread]Eroare la write() catre client.\n");
 						}
 					else
-						printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);
+						printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
 				}
 				else if(Autentificare(nume_user, parola) == 1)
 					{
+						//DE FC: verifica daca exista mesaje noi: cauta in tabela msj noi
 						autentificat = 1;
+						printf("AICI TREBE SA VERIFIC DACA EXISTA MESAJE NOI???\n");//e posibil sa nu fie necesar si aici
 						strcpy(username, nume_user);
 						bzero(raspuns, sizeof(raspuns));
 						fflush (stdout);
@@ -472,88 +543,15 @@ void raspunde(void *arg)
 							printf("[Thread %d] ", tdL.idThread);
 							perror("[Thread]Eroare la write() catre client.\n");
 						}
-						else printf("[Thread %d]Mesajul a fost trasmis cu succes.\n", tdL.idThread);
+						else printf("[Thread %d]Mesajul a fost transmis cu succes.\n", tdL.idThread);
 					}
 				}
 
 			}//sfarsit autentificare
-		/*
-			if(DateValide(nume_user, parola) == 1)
-			{//
-				//transmitem ca datele introduse sunt corecte
-				bzero(raspuns, sizeof(raspuns));
-				fflush (stdout);
-				strcpy(raspuns, "Datele introduse sunt valide. \n");
-				if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
-					{
-					printf("[Thread %d] ",tdL.idThread);
-					perror ("[Thread]Eroare la write() catre client.\n");
-					}
-				else
-					printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);
-				//verif daca nu e deja autentificat
-				if(UtilizatorAutentificatDeja(nume_user) == 1 || autentificat == 1){
-					bzero(raspuns, sizeof(raspuns));
-					fflush (stdout);
-					strcpy(raspuns, "Sunteti autentificat deja! \n");
-					if (write(tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
-					{
-						printf("[Thread %d] ", tdL.idThread);
-						perror("[Thread]Eroare la write() catre client.\n");
-					}
-					else
-						printf("[Thread %d]Mesajul a fost trasmis cu succes.\n", tdL.idThread);
-				}
-				else if(Autentificare(nume_user, parola) == 1){
-					autentificat = 1;
-					bzero(raspuns, sizeof(raspuns));
-					fflush (stdout);
-					strcpy(raspuns, "V-ati autentificat cu succes! \n");
-					if (write(tdL.cl, &raspuns, sizeof(raspuns)) <= 0){
-						printf("[Thread %d] ", tdL.idThread);
-						perror("[Thread]Eroare la write() catre client.\n");
-					}
-					else printf("[Thread %d]Mesajul a fost trasmis cu succes.\n", tdL.idThread);
-				}
-			} //
-			else {//date incorecte
-				bzero(raspuns, sizeof(raspuns));
-				fflush (stdout);
-				strcpy(raspuns, "Datele introduse nu sunt valide. Cererea a fost respinsa.");
-				if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
-					{
-					printf("[Thread %d] ",tdL.idThread);
-					perror ("[Thread]Eroare la write() catre client.\n");
-					}
-				else
-					printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);
-				
-				bzero(raspuns, sizeof(raspuns));
-				fflush (stdout);
-				strcpy(raspuns, "Incercati din nou! \n");
-				if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
-					{
-					printf("[Thread %d] ",tdL.idThread);
-					perror ("[Thread]Eroare la write() catre client.\n");
-					}
-				else
-					printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);
-			}
-		}*/
 
-		//---------------------------------------DECONECTARE----------------------------------------
+//---------------------------------------DECONECTARE----------------------------------------
 		else if (strcmp(comanda, "Deconectare") == 0){
 			printf("Clientul %d (%s) vrea sa se deconecteze...\n", tdL.idThread, username);
-			/* MA GANDESC CA AR TRB SA STIU DEJA NUMELE !!...!!
-			bzero(nume_user, sizeof(nume_user));
-			fflush (stdout);
-			if (read(tdL.cl, &nume_user, sizeof(nume_user)) <= 0)
-				{
-					printf("[Thread %d]\n", tdL.idThread);
-					perror("Eroare la citire username de la client.\n");
-				}
-			else printf("Numele primit este: %s\n", nume_user);
-			*/
 			bzero(raspuns, sizeof(raspuns));
 			fflush (stdout);
 			
@@ -566,12 +564,11 @@ void raspunde(void *arg)
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la write() catre client.\n");
 				} else
-					printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);
+					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
 
 			}
 			else 
 				{
-				printf("DECONECTAREA A ESUAT\n");
 				strcpy(raspuns, "Deconectarea nu poate fi realizata.");
 				if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
 					{
@@ -579,15 +576,85 @@ void raspunde(void *arg)
 					perror ("[Thread]Eroare la write() catre client.\n");
 					}
 				else
-					printf ("[Thread %d]Mesajul a fost trasmis cu succes.\n",tdL.idThread);
+					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
 				}
 		}//sfarsit deconectare
-		else {
+//---------------------------------------TRIMITE MESAJ----------------------------------------		
+		else if(strcmp(comanda, "Trimite_Mesaj") == 0){
+			bzero(destinatar, sizeof(destinatar));
+			printf("Cineva vrea sa trimita un mesaj...\n");
+			if (read(tdL.cl, &destinatar, sizeof(destinatar)) <= 0)
+				{
+					printf("[Thread %d]\n", tdL.idThread);
+					perror("Eroare la citire nume destinatar de la client.\n");
+				}
+			printf("Clientul %d (%s) vrea sa trimita un mesaj userului %s.\n", tdL.idThread, username, destinatar);
+		
+			bzero(raspuns, sizeof(raspuns));
+			fflush (stdout);
+			int exista;
+			if(UtilizatorExistentDeja(destinatar) == 0){
+				exista = 0;
+				if (write (tdL.cl, &exista, sizeof(exista)) <= 0)
+				{
+					printf("[Thread %d] ",tdL.idThread);
+					perror ("[Thread]Eroare la write() catre client.\n");
+				} else
+					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
+			}
+			else {//utilizatorul exista; poate fi transmis mesajul
+			//username=expeditor; 
+				exista = 1;
+				if (write (tdL.cl, &exista, sizeof(exista)) <= 0)
+				{
+					printf("[Thread %d] ",tdL.idThread);
+					perror ("[Thread]Eroare la write() catre client.\n");
+				} else
+					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
+				bzero(mesaj, 500);
+				//citesc mesajul si il adaug in tabelele mesaje+mesajeNoi
+				if (read(tdL.cl, &mesaj, sizeof(mesaj)) <= 0)
+				{
+					printf("[Thread %d]\n", tdL.idThread);
+					perror("Eroare la citire mesaj transmis de client.\n");
+				}
+				else {
+					printf("Mesajul primit este: %s\n", mesaj);
+					if(Trimite_Mesaj(username, destinatar, mesaj) == 0)
+					{
+						printf("Mesajul nu s-a trimis\n");
+					}
+					else {
+						printf("Mesajul s-a trimis\n");
+					}
+				}
+
+			}
+		}
+//---------------------------------------IESIRE----------------------------------------		
+		else if (strcmp(comanda, "Iesire") == 0){
+			bzero(raspuns, sizeof(raspuns));
+			fflush (stdout);
+			if (read(tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
+				{
+					printf("[Thread %d]\n", tdL.idThread);
+					perror("Eroare la citire info de la client.\n");
+				}
+			else printf("Clientul %d (%s) a transmis mesajul: %s\n", tdL.idThread, username, raspuns);
+		}
+		else { //alta comanda
 			printf("Comanda neidentificata.\n");
 			bzero(raspuns, sizeof(raspuns));
 			fflush (stdout);
 			strcpy(raspuns, "Comanda introdusa nu este recunoscuta. Incercati din nou!\n");
-		}
+			if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
+				{
+					printf("[Thread %d] ",tdL.idThread);
+					perror ("[Thread]Eroare la write() catre client.\n");
+				}
+			else
+				printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
+		}//else
 		
 	}
 }
