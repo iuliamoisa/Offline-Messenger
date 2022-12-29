@@ -145,7 +145,6 @@ int main (int argc, char *argv[])
           else printf("%s\n", raspuns);
 
           if(da == 1){
-	printf("--Cat timp erati offline ati primit urmatoarele mesaje: \n");
           bzero(raspuns, sizeof(raspuns));
           fflush (stdout);
           if (read (sd, &raspuns, sizeof(raspuns)) < 0){
@@ -194,12 +193,11 @@ int main (int argc, char *argv[])
       }
       else if(exista == 0) {
         printf("Acest utilizator nu exista! \n");
-        //un write??????????????
       }
       else if(exista == 1){
         //destinatarul exista, mesajul poate fi transmis
         printf("Destinatar identificat cu succes.\n\n");
-        printf("Introduceti mesajul: \n");
+        printf("- Introduceti mesajul: \n");
         bzero(mesaj, 500);
         read(0, &mesaj, 500);
         if(write(sd, &mesaj, sizeof(mesaj)) <= 0){
