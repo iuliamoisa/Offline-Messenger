@@ -123,11 +123,11 @@ int Inserare_TabMesaje(char* expeditor, char* destinatar, char* mesaj){
     } 
     else {
 			ok = 1;
-			printf("Mesajul inserat cu succes in Mesaje!\n");
 			sqlite3_close(db);
 		}
 	return ok;
 }
+
 int Inserare_TabMesajeNoi(char* expeditor, char* destinatar, char* mesaj){
 	//inserare in tabela mesaje -- contine toate mesajele
 	sqlite3 *db;
@@ -149,7 +149,6 @@ int Inserare_TabMesajeNoi(char* expeditor, char* destinatar, char* mesaj){
     } 
     else {
 			ok = 1;
-			printf("Mesajul inserat cu succes in MesajeNoi!\n");
 			sqlite3_close(db);
 		}
 	return ok;
@@ -265,9 +264,7 @@ int DateValide(char *nume_user, char *parola)
 		while (sqlite3_step(res) == SQLITE_ROW)
 		{
 			const char *numeExtras = sqlite3_column_text(res, 0);
-			printf("numele extras: %s\n", numeExtras);
 			const char *parolaExtrasa = sqlite3_column_text(res, 1);
-			printf("parola extrasa: %s\n", parolaExtrasa);
 			if (strcmp(nume_user, numeExtras) == 0 && strcmp(parola, parolaExtrasa) == 0)
 			{
 				ok = 1;
@@ -319,11 +316,6 @@ int Afisare_MesajeOffline(char *destinatar, char mesaje_offline[200][200]){
         sqlite3_close(db);
     }
 	else {
-		/*
-		"CREATE TABLE Cars(Id INT, Name TEXT, Price INT);" 
-							id expeditor destinatar mesaj
-		"SELECT Id, Name FROM Cars WHERE Id = ?";
-		*/
 		char *sql = "SELECT expeditor, continut_mesaj FROM MesajeNoi WHERE destinatar= ?3;";
 		rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);		
 		 if (rc == SQLITE_OK) 
@@ -352,7 +344,29 @@ If there is some row of data available, we get the values of two columns with
 	sqlite3_finalize(res);
     sqlite3_close(db);
 	return nr;
-    
+}
+
+void stergeMesajeOffline(char* destinatar){
+	sqlite3 *db;
+	sqlite3_stmt * res;
+	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK)
+	{
+		fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+	}
+	else {
+		char* sql = "DELETE FROM MesajeNoi WHERE destinatar=?3;";
+		int rc = sqlite3_prepare_v2(db, sql, -1, &res, NULL);
+		if (rc == SQLITE_OK)
+		{
+			printf("stergem mesajeeeeee\n");
+			sqlite3_bind_text(res, 3, destinatar, -1, SQLITE_STATIC);
+			sqlite3_step(res);
+			sqlite3_finalize(res);
+		}
+		else printf("Ceva nu e ok la stergere mesaje\n");
+		sqlite3_close(db);
+	}
 }
 
 int main ()
@@ -476,11 +490,10 @@ void raspunde(void *arg)
 		// citirea mesajului 
         if(read(tdL.cl, &comanda, sizeof(comanda)) <=0){
 			printf("[Thread %d]\n",tdL.idThread);
-			perror ("Eroare la read() de la client.\n");
+			perror ("Eroare la citire comanda de la client.\n");
 		}
         if (strlen(comanda) == 0)
             break;
-        printf("[Thread %d]Am receptionat comanda: %s\n\n", tdL.idThread, comanda);
 //---------------------------------------INREGISTRARE----------------------------------------
 		if (strcmp(comanda, "Inregistrare") == 0)
         {
@@ -508,9 +521,7 @@ void raspunde(void *arg)
 					{
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la write() catre client.\n");
-					}
-				else
-					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);	
+					}	
 			}		
             else if(Inregistrare(nume_user, parola) == 1) {
 				bzero(raspuns, sizeof(raspuns));
@@ -582,8 +593,6 @@ void raspunde(void *arg)
 						printf("[Thread %d] ",tdL.idThread);
 						perror ("[Thread]Eroare la write() catre client.\n");
 						}
-					else
-						printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
 				}
 				else if(Autentificare(nume_user, parola) == 1)
 					{
@@ -619,6 +628,7 @@ void raspunde(void *arg)
 					else {
 						bzero(raspuns, sizeof(raspuns));
 						fflush (stdout);
+						strcat(raspuns, "- Cat timp erati offline ati primit mesajele: \n");
 						for(int i = 0; i < nrmesajeoffline; i++){
 							strcat(raspuns,"\n");
 							strcat(raspuns,mesaje_offline[i]);
@@ -628,6 +638,7 @@ void raspunde(void *arg)
 							printf("[Thread %d] ",tdL.idThread);
 							perror ("[Thread]Eroare la write() catre client.\n");
 						}
+						stergeMesajeOffline(username);
 					}
 					
 				}
@@ -679,8 +690,7 @@ void raspunde(void *arg)
 				{
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la write() catre client.\n");
-				} else
-					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
+				} 
 			}
 			else {//utilizatorul exista; poate fi transmis mesajul
 			//username=expeditor; 
@@ -689,8 +699,7 @@ void raspunde(void *arg)
 				{
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la write() catre client.\n");
-				} else
-					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
+				} 
 				bzero(mesaj, 500);
 				//citesc mesajul si il adaug in tabelele mesaje+mesajeNoi
 				if (read(tdL.cl, &mesaj, sizeof(mesaj)) <= 0)
@@ -732,8 +741,6 @@ void raspunde(void *arg)
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la write() catre client.\n");
 				}
-			else
-				printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
 		}//else
 		
 	}
