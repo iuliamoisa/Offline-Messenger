@@ -306,6 +306,55 @@ int Deconectare(char* nume_user){
 	return ok;
 }
 
+int Afisare_MesajeOffline(char *destinatar, char mesaje_offline[200][200]){
+	sqlite3 *db;
+    char *err_msg = 0;
+    sqlite3_stmt *res;
+    int nr = 0;
+    int rc = sqlite3_open("OM_BazaDeDate.db", &db);
+    
+    if (rc != SQLITE_OK) {
+        
+        fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+    }
+	else {
+		/*
+		"CREATE TABLE Cars(Id INT, Name TEXT, Price INT);" 
+							id expeditor destinatar mesaj
+		"SELECT Id, Name FROM Cars WHERE Id = ?";
+		*/
+		char *sql = "SELECT expeditor, continut_mesaj FROM MesajeNoi WHERE destinatar= ?3;";
+		rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);		
+		 if (rc == SQLITE_OK) 
+        	sqlite3_bind_text(res, 3, destinatar, -1, SQLITE_STATIC);//setez a 3a coloana=dest
+		 else 
+			fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+		
+		while (sqlite3_step(res) != SQLITE_DONE) {
+/*
+If there is some row of data available, we get the values of two columns with
+ the sqlite3_column_text() function.*/
+			const char* user = sqlite3_column_text(res, 0);
+			printf("%s: ", user);
+			const char* informatie = sqlite3_column_text(res, 1);
+			printf("%s\n", informatie);
+			char* mesaj;
+			bzero(mesaj, sizeof(mesaj));
+			strcat(mesaj, user);
+			strcat(mesaj," : ");
+			strcat(mesaj, informatie);
+			strcat(mesaj," \n ");
+			strcpy(mesaje_offline[nr], mesaj);
+			nr++;
+		} 
+	}
+	sqlite3_finalize(res);
+    sqlite3_close(db);
+	return nr;
+    
+}
+
 int main ()
 {
   struct sockaddr_in server;	// structura folosita de server
@@ -412,18 +461,14 @@ void raspunde(void *arg)
 	struct thData tdL; 
 	tdL= *((struct thData*)arg);
 	int autentificat = 0;
+	int pot_primi_mesaj;
 	while(1){
-		if(autentificat == 1){
-			printf("Aici ar trb sa verific daca exista msj noi\n");
-		}
 		if (write (tdL.cl, &autentificat, sizeof(autentificat)) <= 0)
 					{
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la trimitere stare catre client.\n");
 					}
-				else
-					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
-					//---------------
+//---------------
 		bzero(comanda, sizeof(comanda));
 		bzero(nume_user, sizeof(nume_user));
 		bzero(parola, sizeof(parola));
@@ -476,8 +521,6 @@ void raspunde(void *arg)
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la write() catre client.\n");
 					}
-				else
-					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);	
 			}
         } else 
 //---------------------------------------AUTENTIFICARE----------------------------------------
@@ -503,22 +546,34 @@ void raspunde(void *arg)
 			
 			if(UtilizatorAutentificatDeja(nume_user) == 1 || autentificat == 1)
 			{
+				pot_primi_mesaj = 0;
+				if (write(tdL.cl, &pot_primi_mesaj, sizeof(pot_primi_mesaj)) <= 0){//echivalent cu var ''da'' din client
+						printf("[Thread %d] ", tdL.idThread);
+						perror("[Thread]Eroare la write() catre client.\n");
+					}
+
 				bzero(raspuns, sizeof(raspuns));
 				fflush (stdout);
-				if(autentificat == 1) strcpy(raspuns, "Sunteti autentificat deja!\n");
+				if(autentificat == 1) 
+					strcpy(raspuns, "Sunteti autentificat deja!\n");
 				else if(UtilizatorAutentificatDeja(nume_user) == 1)
 					strcpy(raspuns, "Datele introduse sunt asociate unui cont autentificat deja!\n");
+				
 				if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
 					{
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la write() catre client.\n");
 					}
-				else
-					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
+				
 			}
 			else { //poate avea loc autentif; verif daca datele sunt corecte 
 				if(DateValide(nume_user, parola) == 0)
 				{
+					pot_primi_mesaj = 0;
+					if (write(tdL.cl, &pot_primi_mesaj, sizeof(pot_primi_mesaj)) <= 0){//echivalent cu var ''da'' din client
+						printf("[Thread %d] ", tdL.idThread);
+						perror("[Thread]Eroare la write() catre client.\n");
+					}
 					bzero(raspuns, sizeof(raspuns));
 					fflush (stdout);
 					strcpy(raspuns, "Datele introduse nu sunt valide. Cererea a fost respinsa.");
@@ -532,9 +587,12 @@ void raspunde(void *arg)
 				}
 				else if(Autentificare(nume_user, parola) == 1)
 					{
-						//DE FC: verifica daca exista mesaje noi: cauta in tabela msj noi
 						autentificat = 1;
-						printf("AICI TREBE SA VERIFIC DACA EXISTA MESAJE NOI???\n");//e posibil sa nu fie necesar si aici
+						pot_primi_mesaj = 1;
+						if (write(tdL.cl, &pot_primi_mesaj, sizeof(pot_primi_mesaj)) <= 0){//echivalent cu var ''da'' din client
+							printf("[Thread %d] ", tdL.idThread);
+							perror("[Thread]Eroare la write() catre client.\n");
+						}						
 						strcpy(username, nume_user);
 						bzero(raspuns, sizeof(raspuns));
 						fflush (stdout);
@@ -543,10 +601,36 @@ void raspunde(void *arg)
 							printf("[Thread %d] ", tdL.idThread);
 							perror("[Thread]Eroare la write() catre client.\n");
 						}
-						else printf("[Thread %d]Mesajul a fost transmis cu succes.\n", tdL.idThread);
 					}
 				}
-
+				if(pot_primi_mesaj == 1){
+					char mesaje_offline[200][200];
+					int nrmesajeoffline = Afisare_MesajeOffline(username, mesaje_offline);
+					printf("Nr mesaje primite offline = %d\n", nrmesajeoffline);
+					if(nrmesajeoffline == 0){
+						bzero(raspuns, sizeof(raspuns));
+						fflush (stdout);
+						strcpy(raspuns, "Nu exista mesaje primite in timp ce nu erati online. \n");
+						if (write(tdL.cl, &raspuns, sizeof(raspuns)) <= 0){
+							printf("[Thread %d] ", tdL.idThread);
+							perror("[Thread]Eroare la write() catre client.\n");
+						}
+					}
+					else {
+						bzero(raspuns, sizeof(raspuns));
+						fflush (stdout);
+						for(int i = 0; i < nrmesajeoffline; i++){
+							strcat(raspuns,"\n");
+							strcat(raspuns,mesaje_offline[i]);
+						}
+						if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
+						{
+							printf("[Thread %d] ",tdL.idThread);
+							perror ("[Thread]Eroare la write() catre client.\n");
+						}
+					}
+					
+				}
 			}//sfarsit autentificare
 
 //---------------------------------------DECONECTARE----------------------------------------
@@ -563,9 +647,7 @@ void raspunde(void *arg)
 				{
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la write() catre client.\n");
-				} else
-					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
-
+				}
 			}
 			else 
 				{
@@ -575,8 +657,6 @@ void raspunde(void *arg)
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la write() catre client.\n");
 					}
-				else
-					printf ("[Thread %d]Mesajul a fost transmis cu succes.\n",tdL.idThread);
 				}
 		}//sfarsit deconectare
 //---------------------------------------TRIMITE MESAJ----------------------------------------		
