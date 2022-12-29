@@ -24,7 +24,7 @@ int main (int argc, char *argv[])
   char nume_user[25];
   char parola[25];
   char destinatar[25];
-   int exista;
+   int exista, da = 0;
   /* exista toate argumentele in linia de comanda? */
   if (argc != 3)
     {
@@ -57,7 +57,7 @@ int main (int argc, char *argv[])
       return errno;
     }
     
-  int autentificat;
+  int autentificat = 0;
   /* citirea mesajului */
   while(1){
     if (read (sd, &autentificat, sizeof(autentificat)) < 0){
@@ -129,6 +129,13 @@ int main (int argc, char *argv[])
           return errno;
         }
         printf("\n\n");
+        if (read (sd, &da, sizeof(da)) < 0){//pot primi mesaj sau nu
+          perror ("[client]Eroare la read() de la server.\n");
+          return errno;
+        }
+          else printf("Pot primi mesaje: %d\n", da);
+
+
         bzero(raspuns, sizeof(raspuns));//sunt deja autentificat
         fflush (stdout);
         if (read (sd, &raspuns, sizeof(raspuns)) < 0){
@@ -136,15 +143,18 @@ int main (int argc, char *argv[])
           return errno;
         }
           else printf("%s\n", raspuns);
-/*
-        bzero(raspuns, sizeof(raspuns));//date corecte(autentificare reusita) sau nu
-        fflush (stdout);
-        if (read (sd, &raspuns, sizeof(raspuns)) < 0){
-          perror ("[client]Eroare la read() de la server.\n");
-          return errno;
+
+          if(da == 1){
+	printf("--Cat timp erati offline ati primit urmatoarele mesaje: \n");
+          bzero(raspuns, sizeof(raspuns));
+          fflush (stdout);
+          if (read (sd, &raspuns, sizeof(raspuns)) < 0){
+            perror ("[client]Eroare la read() de la server.\n");
+            return errno;
+          }
+            else printf("%s\n", raspuns);
         }
-          else printf("%s\n", raspuns);
-  */
+
     }
     else if(strcmp(comanda, "Deconectare") == 0)
         {
