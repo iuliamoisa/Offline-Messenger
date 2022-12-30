@@ -24,7 +24,7 @@ int main (int argc, char *argv[])
   char nume_user[25];
   char parola[25];
   char destinatar[25];
-   int exista, da = 0;
+   int exista, da = 0, nr_useri = 0;
   /* exista toate argumentele in linia de comanda? */
   if (argc != 3)
     {
@@ -67,9 +67,9 @@ int main (int argc, char *argv[])
     if(autentificat == 0){
       printf("\n\nOFFLINE MESSENGER\n\n");
       printf("--- Bine ati venit! ---\n");
-      printf("- Alegeti una din optiuni: \nInregistrare \nAutentificare \nIesire \n\n~ ~ ~\n\n");
+      printf("- Alegeti una din optiuni: \n\nInregistrare \nAutentificare \nIesire \n\n~ ~ ~\n\n");
     }
-    else printf("\n- Alegeti una din optiuni: \nTrimite_Mesaj \nDeconectare \nIesire \n\n~ ~ ~\n\n");
+    else printf("\n- Alegeti una din optiuni: \n\nTrimite_Mesaj \nUtilizatori_Online \nUtilizatori \nDeconectare \nIesire \n\n~ ~ ~\n\n");
     bzero(comanda, sizeof(comanda));
     fflush (stdout);
     scanf("%s", comanda);
@@ -145,15 +145,31 @@ int main (int argc, char *argv[])
           else printf("%s\n", raspuns);
 
           if(da == 1){
-          bzero(raspuns, sizeof(raspuns));
-          fflush (stdout);
-          if (read (sd, &raspuns, sizeof(raspuns)) < 0){
-            perror ("[client]Eroare la read() de la server.\n");
-            return errno;
-          }
-            else printf("%s\n", raspuns);
+            bzero(raspuns, sizeof(raspuns));
+            fflush (stdout);
+            if (read (sd, &raspuns, sizeof(raspuns)) < 0){
+              perror ("[client]Eroare la read() de la server.\n");
+              return errno;
+            }
+              else printf("%s\n", raspuns);
         }
 
+    }
+    else if(strcmp(comanda, "Utilizatori") == 0 || strcmp(comanda, "Utilizatori_Online") == 0){
+      if (read (sd, &nr_useri, sizeof(nr_useri)) < 0){
+          perror ("[client]Eroare la read() de la server.\n");
+          return errno;
+        }
+          else printf("-- Numar utilizatori: %d\n", nr_useri);
+      if(nr_useri != 0){
+        bzero(raspuns, sizeof(raspuns));
+        fflush (stdout);
+        if (read (sd, &raspuns, sizeof(raspuns)) < 0){
+          perror ("[client]Eroare la read() de la server.\n");
+          return errno;
+        }
+          else printf("%s\n", raspuns);
+      }
     }
     else if(strcmp(comanda, "Deconectare") == 0)
         {
