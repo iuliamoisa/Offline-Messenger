@@ -67,9 +67,9 @@ int main (int argc, char *argv[])
     if(autentificat == 0){
       printf("\n\nOFFLINE MESSENGER\n\n");
       printf("--- Bine ati venit! ---\n");
-      printf("- Alegeti una din optiuni: \n\nInregistrare \nAutentificare \nIesire \n\n~ ~ ~\n\n");
+      printf("- Alegeti una din optiuni: \n\n~ Inregistrare \n~ Autentificare \n~ Iesire \n\n~ ~ ~\n\n");
     }
-    else printf("\n- Alegeti una din optiuni: \n\nTrimite_Mesaj \nUtilizatori_Online \nUtilizatori \nDeconectare \nIesire \n\n~ ~ ~\n\n");
+    else printf("\n- Alegeti una din optiuni: \n\n~ Trimite_Mesaj \n~ Utilizatori_Online \n~ Utilizatori \n~ Afiseaza_Istoric\n~ Deconectare \n~ Iesire \n\n~ ~ ~\n\n");
     bzero(comanda, sizeof(comanda));
     fflush (stdout);
     scanf("%s", comanda);
@@ -224,6 +224,35 @@ int main (int argc, char *argv[])
 
           
     }//if trimite mesaj
+    else if(strcmp(comanda, "Afiseaza_Istoric") == 0){
+      printf("-- Introduceti numele utilizatorului cu care vreti sa vedeti istoricul conversatiilor:");
+      bzero(nume_user, sizeof(nume_user));
+      bzero(parola, sizeof(parola));
+      fflush (stdout);
+      scanf("%s", nume_user);
+      printf("\n");
+
+      if(write(sd, &nume_user, sizeof(nume_user)) <= 0){
+        perror ("[client]Eroare la trimitere username spre server.\n");
+        return errno;
+      }
+      da = 0;
+      if (read (sd, &da, sizeof(da)) < 0){//pot vedea istoricul sau nu
+          perror ("[client]Eroare la read() de la server.\n");
+          return errno;
+        }
+          else printf("Exista userul introdus deci pot vedea conv cu el: %d\n", da);
+      if(da == 1){
+            bzero(raspuns, sizeof(raspuns));
+            fflush (stdout);
+            if (read (sd, &raspuns, sizeof(raspuns)) < 0){
+              perror ("[client]Eroare la read() de la server.\n");
+              return errno;
+            }
+              else printf("%s\n", raspuns);
+      }
+    
+    }
     else{//comanda nerecunoscuta
       bzero(raspuns, sizeof(raspuns));
 			fflush (stdout);
