@@ -191,6 +191,46 @@ int UtilizatorExistentDeja(char* nume_user){
 		return ok;
 	}
 }
+int Utilizatori(char utilizatori[200][200], int opt){
+	int rc, nr = 0;
+    sqlite3_stmt *res;
+	sqlite3 *db;
+	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK)
+	{
+		fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+	}
+	else {
+		char *sql;
+		if (opt == 1)
+			sql = "SELECT nume_user FROM UtilizatoriInregistrati;";
+		else if(opt == 2)
+			sql = "SELECT nume_user FROM UtilizatoriAutentificati;";
+		rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);		
+		 if (rc != SQLITE_OK) 
+        	//sqlite3_bind_text(res, 3, destinatar, -1, SQLITE_STATIC);//setez a 3a coloana=dest
+		 //else 
+			fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+		
+		while (sqlite3_step(res) != SQLITE_DONE) {
+			const char* user = sqlite3_column_text(res, 0);
+			printf("%s\n ", user);
+			//const char* informatie = sqlite3_column_text(res, 1);
+			//printf("%s\n", informatie);
+			char* utilizator;
+			bzero(utilizator, sizeof(utilizator));
+			strcat(utilizator, user);
+			///strcat(utilizator," : ");
+			//strcat(utilizator, informatie);
+			strcat(utilizator," \n ");
+			strcpy(utilizatori[nr], utilizator);
+			nr++;
+		} 
+	}
+	return nr;
+	sqlite3_finalize(res);
+    sqlite3_close(db);
+}
 
 int Autentificare(char *nume_user, char *parola)
 {
@@ -471,11 +511,11 @@ void raspunde(void *arg)
 	char raspuns[1000], comanda[50], mesaj[500];
 	char nume_user[25], username[25], destinatar[25];
     char parola[25];
-    int nr, i=0;
+    int nr;
 	struct thData tdL; 
 	tdL= *((struct thData*)arg);
 	int autentificat = 0;
-	int pot_primi_mesaj;
+	int pot_primi_mesaj, opt;
 	while(1){
 		if (write (tdL.cl, &autentificat, sizeof(autentificat)) <= 0)
 					{
@@ -720,6 +760,58 @@ void raspunde(void *arg)
 
 			}
 		}
+//---------------------------------------AFISARE UTILIZATORI INREGISTRATI----------------------------------------		
+		else if (strcmp(comanda, "Utilizatori") == 0){
+			opt = 1;
+			char toti_userii[200][200];
+			int nr_useri_total = Utilizatori(toti_userii, opt);
+			if (write(tdL.cl, &nr_useri_total, sizeof(nr_useri_total)) <= 0){
+				printf("[Thread %d] ", tdL.idThread);
+				perror("[Thread]Eroare la write() catre client.\n");
+			}
+			if(nr_useri_total != 0){
+				bzero(raspuns, sizeof(raspuns));
+				fflush (stdout);
+				strcat(raspuns, "-- Utilizatorii inregistrati sunt:");
+				for(int i = 0; i < nr_useri_total; i++){
+					strcat(raspuns, "\n");
+					//add nr utilizatorului in fata; un strcpy 
+					strcat(raspuns, toti_userii[i]);
+				}
+				if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
+				{
+					printf("[Thread %d] ",tdL.idThread);
+					perror ("[Thread]Eroare la write() catre client.\n");
+				}
+			}
+
+		}
+//---------------------------------------AFISARE UTILIZATORI ONLINE----------------------------------------		
+		else if (strcmp(comanda, "Utilizatori_Online") == 0){
+			opt = 2;
+			char utilizatori_on[200][200];
+			int nr_useri_on = Utilizatori(utilizatori_on, opt);
+			if (write(tdL.cl, &nr_useri_on, sizeof(nr_useri_on)) <= 0){
+				printf("[Thread %d] ", tdL.idThread);
+				perror("[Thread]Eroare la write() catre client.\n");
+			}
+			if(nr_useri_on != 0){
+				bzero(raspuns, sizeof(raspuns));
+				fflush (stdout);
+				strcat(raspuns, "-- Utilizatorii online sunt:");
+				for(int i = 0; i < nr_useri_on; i++){
+					strcat(raspuns, "\n");
+					//add nr utilizatorului in fata; un strcpy 
+					strcat(raspuns, utilizatori_on[i]);
+				}
+
+				if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
+				{
+					printf("[Thread %d] ",tdL.idThread);
+					perror ("[Thread]Eroare la write() catre client.\n");
+				}
+			}
+		}
 //---------------------------------------IESIRE----------------------------------------		
 		else if (strcmp(comanda, "Iesire") == 0){
 			bzero(raspuns, sizeof(raspuns));
@@ -731,6 +823,8 @@ void raspunde(void *arg)
 				}
 			else printf("Clientul %d (%s) a transmis mesajul: %s\n", tdL.idThread, username, raspuns);
 		}
+//---------------------------------------COMANDA NERECUNOSCUTA----------------------------------------		
+
 		else { //alta comanda
 			printf("Comanda neidentificata.\n");
 			bzero(raspuns, sizeof(raspuns));
