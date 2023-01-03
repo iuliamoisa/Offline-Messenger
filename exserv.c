@@ -8,7 +8,9 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <pthread.h>
+#include <string.h>
 #include "sqlite3.h"
+#define _OPEN_SYS_ITOA_EXT
 
 /* portul folosit */
 #define PORT 2908
@@ -161,15 +163,6 @@ int Trimite_Mesaj(char* expeditor, char* destinatar, char* mesaj){
 	
 }
 
-/* CRED CA TREBE STERS ASTA
-  static int callback(
-    char **value_of_count, // will be either 0 or 1 in this case 
-    char **label_for_count) { // will be COUNT(*) normally,
-                 //but modified via 'AS table_tablename' in this case
-      printf("COUNT(*) %s\t=>\t%s\n", label_for_count[0], value_of_count[0] );
-      return 0;
-    }
-*/
 int UtilizatorExistentDeja(char* nume_user){
 	int rc, ok = 0;
     sqlite3_stmt *res;
@@ -191,6 +184,7 @@ int UtilizatorExistentDeja(char* nume_user){
 		return ok;
 	}
 }
+
 int Utilizatori(char utilizatori[200][200], int opt){
 	int rc, nr = 0;
     sqlite3_stmt *res;
@@ -356,23 +350,27 @@ int Afisare_MesajeOffline(char *destinatar, char mesaje_offline[200][200]){
         sqlite3_close(db);
     }
 	else {
-		char *sql = "SELECT expeditor, continut_mesaj FROM MesajeNoi WHERE destinatar= ?3;";
+		char *sql = "SELECT mesaj_ID, expeditor, continut_mesaj FROM MesajeNoi WHERE destinatar= ?3;";
 		rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);		
 		 if (rc == SQLITE_OK) 
         	sqlite3_bind_text(res, 3, destinatar, -1, SQLITE_STATIC);//setez a 3a coloana=dest
 		 else 
 			fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
-		
 		while (sqlite3_step(res) != SQLITE_DONE) {
-/*
-If there is some row of data available, we get the values of two columns with
- the sqlite3_column_text() function.*/
-			const char* user = sqlite3_column_text(res, 0);
+			const int id = sqlite3_column_int(res, 0);
+			int lg = snprintf( NULL, 0, "%d", id);
+			char* id_mesaj = malloc( lg + 1 );
+			snprintf(id_mesaj, lg + 1, "%d", id );
+    		printf("%s. ", id_mesaj);
+			const char* user = sqlite3_column_text(res, 1);
 			printf("%s: ", user);
-			const char* informatie = sqlite3_column_text(res, 1);
+			const char* informatie = sqlite3_column_text(res, 2);
 			printf("%s\n", informatie);
 			char* mesaj;
+			//id. user : mesaj 
 			bzero(mesaj, sizeof(mesaj));
+			strcat(mesaj, id_mesaj);
+			strcat(mesaj, ". ");
 			strcat(mesaj, user);
 			strcat(mesaj," : ");
 			strcat(mesaj, informatie);
@@ -400,7 +398,7 @@ int AfisareIstoric(char* a, char* b, char conversatii[200][200]){
     }
 	else {
 //Mesaje(mesaj_ID  expeditor  destinatar  continut_mesaj 
-		char *sql = "SELECT expeditor, continut_mesaj FROM Mesaje WHERE (expeditor=?2 AND destinatar=?3) OR (expeditor=?3 AND destinatar=?2);";
+		char *sql = "SELECT mesaj_ID, expeditor, continut_mesaj FROM Mesaje WHERE (expeditor=?2 AND destinatar=?3) OR (expeditor=?3 AND destinatar=?2);";
 		rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);		
 		 if (rc == SQLITE_OK) {
 			sqlite3_bind_text(res, 2, a, -1, SQLITE_STATIC);
@@ -410,12 +408,19 @@ int AfisareIstoric(char* a, char* b, char conversatii[200][200]){
 			fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
 		
 		while (sqlite3_step(res) != SQLITE_DONE) {
-			const char* user = sqlite3_column_text(res, 0);
+			const int id = sqlite3_column_int(res, 0);
+			int lg = snprintf( NULL, 0, "%d", id);
+			char* id_mesaj = malloc( lg + 1 );
+			snprintf(id_mesaj, lg + 1, "%d", id );
+			printf("%s. ", id_mesaj);
+			const char* user = sqlite3_column_text(res, 1);
 			printf("%s: ", user);
-			const char* informatie = sqlite3_column_text(res, 1);
+			const char* informatie = sqlite3_column_text(res, 2);
 			printf("%s\n", informatie);
 			char* mesaj;
 			bzero(mesaj, sizeof(mesaj));
+			strcat(mesaj, id_mesaj);
+			strcat(mesaj, ". ");
 			strcat(mesaj, user);
 			strcat(mesaj," : ");
 			strcat(mesaj, informatie);
@@ -908,7 +913,6 @@ void raspunde(void *arg)
 
 			}
 		}
-
 //---------------------------------------IESIRE----------------------------------------		
 		else if (strcmp(comanda, "Iesire") == 0){
 			bzero(raspuns, sizeof(raspuns));
