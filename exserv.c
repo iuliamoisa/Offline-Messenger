@@ -123,10 +123,8 @@ int Inserare_TabMesaje(char* expeditor, char* destinatar, char* mesaj){
         sqlite3_free(err_msg);        
         //sqlite3_close(db);
     } 
-    else {
-			ok = 1;
-			sqlite3_close(db);
-		}
+    else ok = 1;
+	sqlite3_close(db);
 	return ok;
 }
 
@@ -397,7 +395,6 @@ int AfisareIstoric(char* a, char* b, char conversatii[200][200]){
         sqlite3_close(db);
     }
 	else {
-//Mesaje(mesaj_ID  expeditor  destinatar  continut_mesaj 
 		char *sql = "SELECT mesaj_ID, expeditor, continut_mesaj FROM Mesaje WHERE (expeditor=?2 AND destinatar=?3) OR (expeditor=?3 AND destinatar=?2);";
 		rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);		
 		 if (rc == SQLITE_OK) {
@@ -412,14 +409,14 @@ int AfisareIstoric(char* a, char* b, char conversatii[200][200]){
 			int lg = snprintf( NULL, 0, "%d", id);
 			char* id_mesaj = malloc( lg + 1 );
 			snprintf(id_mesaj, lg + 1, "%d", id );
-			printf("%s. ", id_mesaj);
+			//printf("%s. ", id_mesaj);
 			const char* user = sqlite3_column_text(res, 1);
-			printf("%s: ", user);
+			//printf("%s: ", user);
 			const char* informatie = sqlite3_column_text(res, 2);
-			printf("%s\n", informatie);
+			//printf("%s\n", informatie);
 			char* mesaj;
-			bzero(mesaj, sizeof(mesaj));
-			strcat(mesaj, id_mesaj);
+			//bzero(mesaj, sizeof(mesaj));
+			strcpy(mesaj, id_mesaj);
 			strcat(mesaj, ". ");
 			strcat(mesaj, user);
 			strcat(mesaj," : ");
@@ -455,6 +452,33 @@ void stergeMesajeOffline(char* destinatar){
 		else printf("Ceva nu e ok la stergere mesaje\n");
 		sqlite3_close(db);
 	}
+}
+int  maxID(char* a, char* b){//cel mai mare ID al unui msj intre a si b
+	sqlite3 *db;
+    char *err_msg = 0;
+    sqlite3_stmt *res;
+    int nr = 0;
+    int rc = sqlite3_open("OM_BazaDeDate.db", &db);
+    
+    if (rc != SQLITE_OK) {
+        
+        fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+    }
+	else {
+		char *sql = "SELECT mesaj_ID FROM Mesaje WHERE (expeditor=?2 AND destinatar=?3) OR (expeditor=?3 AND destinatar=?2) ORDER BY mesaj_ID DESC LIMIT 1;";
+		rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);		
+		 if (rc == SQLITE_OK) {
+			sqlite3_bind_text(res, 2, a, -1, SQLITE_STATIC);
+        	sqlite3_bind_text(res, 3, b, -1, SQLITE_STATIC);
+			sqlite3_step(res);
+			nr = sqlite3_column_int(res,0);
+			sqlite3_finalize(res);
+		 }
+		 else 
+			fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+	}
+	return nr;
 }
 
 int main ()
@@ -557,13 +581,13 @@ static void *treat(void * arg)
 void raspunde(void *arg)
 {
 	char raspuns[1000], comanda[50], mesaj[500];
-	char nume_user[25], username[25], destinatar[25];
+	char nume_user[25], username[25], destinatar[25], idMesaj[25];
     char parola[25];
     int nr;
 	struct thData tdL; 
 	tdL= *((struct thData*)arg);
 	int autentificat = 0;
-	int pot_primi_mesaj, opt, ok;
+	int pot_primi_mesaj, opt, ok, ok2;
 	while(1){
 		if (write (tdL.cl, &autentificat, sizeof(autentificat)) <= 0)
 					{
@@ -866,8 +890,8 @@ void raspunde(void *arg)
 		}
 //---------------------------------------AFISARE ISTORIC CU UN ANUMIT USER----------------------------------------		
 		else if (strcmp(comanda, "Afiseaza_Istoric") == 0){
-			printf("Clientul %d (%s) vrea sa accese un istoricul...", tdL.idThread, username);
-				if(read(tdL.cl, &nume_user, sizeof(nume_user)) <=0){
+			printf("Clientul %d (%s) vrea sa accese un istoric ", tdL.idThread, username);
+			if(read(tdL.cl, &nume_user, sizeof(nume_user)) <=0){
 					printf("[Thread %d]\n",tdL.idThread);
 					perror ("Eroare la citire username de la client.\n");
 				}
@@ -877,11 +901,12 @@ void raspunde(void *arg)
 			if (write (tdL.cl, &ok, sizeof(ok)) <= 0) //pot vedea istoricul sau nu
 				{
 					printf("[Thread %d] ",tdL.idThread);
-					perror ("[Thread]Eroare la write() catre client.\n");
+					perror ("[Thread]Eroare la trimitere ok istoric catre client.\n");
 				} 
 			if(ok == 1){
 				char conversatii[200][200];
 				int nr_mesaje = AfisareIstoric(username, nume_user, conversatii);
+				printf("Exista %d conversatii intre %s si %s\n",nr_mesaje,username, nume_user); 
 				if(nr_mesaje) //nume_user=utilizatorul cu care vreau sa vad conv
 				{
 					//write conversatie
@@ -892,10 +917,11 @@ void raspunde(void *arg)
 							strcat(raspuns,"\n");
 							strcat(raspuns,conversatii[i]);
 						}
+						printf("\n %s \n", raspuns);
 						if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
 						{
 							printf("[Thread %d] ",tdL.idThread);
-							perror ("[Thread]Eroare la write() catre client.\n");
+							perror ("[Thread]Eroare la trimitere conv catre client.\n");
 						}
 				}
 				else {
@@ -905,12 +931,10 @@ void raspunde(void *arg)
 						strcpy(raspuns, "Nu exista conversatii cu acest utilizator. \n");
 						if (write(tdL.cl, &raspuns, sizeof(raspuns)) <= 0){
 							printf("[Thread %d] ", tdL.idThread);
-							perror("[Thread]Eroare la write() catre client.\n");
+							perror("[Thread]Eroare la trimitere conv inexistenta catre client.\n");
 						}
+						else printf("%s \n\n", raspuns);
 				}
-
-
-
 			}
 		}
 //---------------------------------------IESIRE----------------------------------------		
@@ -924,6 +948,83 @@ void raspunde(void *arg)
 				}
 			else printf("Clientul %d (%s) a transmis mesajul: %s\n", tdL.idThread, username, raspuns);
 		}
+//---------------------------------------RASPUNDE LA UN ANUMIT MESAJ----------------------------------------		
+		else if (strcmp(comanda, "Raspunde_La_Mesaj") == 0){
+			printf("Clientul %d (%s) vrea sa raspunda la un mesaj specific din partea", tdL.idThread, username);
+			bzero(nume_user, sizeof(nume_user));//nume_user = cui vreau sa raspund
+				if(read(tdL.cl, &nume_user, sizeof(nume_user)) <=0){
+					printf("[Thread %d]\n",tdL.idThread);
+					perror ("Eroare la citire username de la client.\n");
+				}
+				else printf(" userului %s.\n", nume_user);
+
+			ok2 = UtilizatorExistentDeja(nume_user);
+			if (write (tdL.cl, &ok2, sizeof(ok2)) <= 0) //exista userul sau nu am cui sa ii rasp basically
+				{
+					printf("[Thread %d] ",tdL.idThread);
+					perror ("[Thread]Eroare la write() catre client.\n");
+				} 
+			
+			if(ok2 == 1){
+				int idOK;
+				bzero(raspuns, sizeof(raspuns));
+				strcpy(raspuns,"Introduceti numarul mesajului la care doriti sa raspundeti:");
+				if (write (tdL.cl, raspuns, sizeof(raspuns)) <= 0)//comanda
+					{
+						printf("[Thread %d] ",tdL.idThread);
+						perror ("[Thread]Eroare la trimitere comanda catre client.\n");	
+					}
+
+				bzero(idMesaj, sizeof(idMesaj)); //primire id mesaj
+				if(read(tdL.cl, &idMesaj, sizeof(idMesaj)) <=0){
+					printf("[Thread %d]\n",tdL.idThread);
+					perror ("Eroare la citire idMesaj de la client.\n");
+				}
+				else {//am primit id, verific daca e valid
+					printf("Am citit id-ul mesajului: %s\n", idMesaj);
+					int idMax = maxID(username, nume_user);
+					printf("IDmax === %d\n", idMax);
+					idOK = 1;
+					if(idMax < atoi(idMesaj)) //nu exista id cu nr introdus
+						idOK = 0;
+					
+					if (write (tdL.cl, &idOK, sizeof(idOK)) <= 0)//comanda
+						{
+						printf("[Thread %d] ",tdL.idThread);
+						perror ("[Thread]Eroare la trimitere comanda catre client.\n");	
+						}
+					if(idOK == 1){
+						bzero(mesaj, sizeof(mesaj));
+						//citesc mesajul si il adaug in tabelele mesaje+mesajeNoi
+						if (read(tdL.cl, &mesaj, sizeof(mesaj)) <= 0)
+						{
+							printf("[Thread %d]\n", tdL.idThread);
+							perror("Eroare la citire mesaj transmis de client.\n");
+						}
+						else {
+							printf("Mesajul primit este:\n %s\n", mesaj);
+							char mesaj_reply[500];
+							strcpy(mesaj_reply," ");
+							strcat(mesaj_reply, mesaj);
+							strcat(mesaj_reply, " [[ raspuns pt nr ");
+							strcat(mesaj_reply, idMesaj);
+							strcat(mesaj_reply," ]]");
+							printf("Mesajul reply este:\n %s\n", mesaj_reply);
+							if(Trimite_Mesaj(username, nume_user, mesaj_reply) == 0)
+							{
+								printf("Mesajul nu s-a trimis\n");
+							}
+							else {
+								printf("Mesajul s-a trimis\n");
+							}
+						}
+					}//if idOK==1
+				}
+				
+			}//ok==1
+
+		}
+
 //---------------------------------------COMANDA NERECUNOSCUTA----------------------------------------		
 		else { //alta comanda
 			printf("Comanda neidentificata.\n");
