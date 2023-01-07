@@ -8,57 +8,40 @@
 #include <netdb.h>
 #include <string.h>
 
-/* codul de eroare returnat de anumite apeluri */
-extern int errno;
-
-/* portul de conectare la server*/
+extern int errno;//codul de eroare returnat de anumite apeluri 
 int port;
 
 int main (int argc, char *argv[])
 {
   int sd;			// descriptorul de socket
   struct sockaddr_in server;	// structura folosita pentru conectare 
-  		// mesajul trimis
-  int nr=0;
+  int nr = 0;
   char comanda[50], raspuns[1000], mesaj[500];
   char nume_user[25];
   char parola[25];
   char destinatar[25], idMesaj[25];
    int exista, da = 0, nr_useri = 0, ok2, idOK = 0;;
-  /* exista toate argumentele in linia de comanda? */
   if (argc != 3)
     {
       printf ("Sintaxa: %s <adresa_server> <port>\n", argv[0]);
       return -1;
     }
-
-  /* stabilim portul */
-  port = atoi (argv[2]);
-
-  /* cream socketul */
+  port = atoi (argv[2]);  // stabilim portul 
   if ((sd = socket (AF_INET, SOCK_STREAM, 0)) == -1)
     {
       perror ("Eroare la socket().\n");
       return errno;
     }
 
-  /* umplem structura folosita pentru realizarea conexiunii cu serverul */
-  /* familia socket-ului */
   server.sin_family = AF_INET;
-  /* adresa IP a serverului */
-  server.sin_addr.s_addr = inet_addr(argv[1]);
-  /* portul de conectare */
+  server.sin_addr.s_addr = inet_addr(argv[1]);//adresa IP a serverului */
   server.sin_port = htons (port);
-  
-  /* ne conectam la server */
   if (connect (sd, (struct sockaddr *) &server,sizeof (struct sockaddr)) == -1)
     {
       perror ("[client]Eroare la connect().\n");
       return errno;
     }
-    
   int autentificat = 0;
-  /* citirea mesajului */
   while(1){
     if (read (sd, &autentificat, sizeof(autentificat)) < 0){
           perror ("[client]Eroare la citire stare client de la server.\n");
@@ -119,7 +102,6 @@ int main (int argc, char *argv[])
         printf("-- Parola:");
         scanf("%s", parola);
         printf("\n");
-  //trimitem serverului usernameul si parola
         if(write(sd, &nume_user, sizeof(nume_user)) <= 0){
           perror ("[client]Eroare la trimitere username spre server.\n");
           return errno;
@@ -135,8 +117,7 @@ int main (int argc, char *argv[])
         }
           else printf("Pot primi mesaje: %d\n", da);
 
-
-        bzero(raspuns, sizeof(raspuns));//sunt deja autentificat
+        bzero(raspuns, sizeof(raspuns));//sunt deja autentificat?
         fflush (stdout);
         if (read (sd, &raspuns, sizeof(raspuns)) < 0){
           perror ("[client]Eroare la read() de la server.\n");
@@ -210,20 +191,17 @@ int main (int argc, char *argv[])
       else if(exista == 0) {
         printf("Acest utilizator nu exista! \n");
       }
-      else if(exista == 1){
-        //destinatarul exista, mesajul poate fi transmis
+      else if(exista == 1){ //destinatarul exista, mesajul poate fi transmis
         printf("Destinatar identificat cu succes.\n\n");
         printf("- Introduceti mesajul: \n");
         bzero(mesaj, 500);
         read(0, &mesaj, 500);
-        mesaj[strlen(mesaj) - 1] = '\0';//?????????
+        mesaj[strlen(mesaj) - 1] = '\0';
         if(write(sd, &mesaj, sizeof(mesaj)) <= 0){
           perror ("[client]Eroare la trimitere mesaj\n");
           return errno;
           }
-      }
-
-          
+      }    
     }//if trimite mesaj
     else if(strcmp(comanda, "Afiseaza_Istoric") == 0){
        printf("-- Introduceti numele utilizatorului cu care vreti sa vedeti istoricul conversatiilor:");
@@ -241,7 +219,6 @@ int main (int argc, char *argv[])
           perror ("[client]Eroare la read() de la server.\n");
           return errno;
         }
-          else printf("Exista userul introdus deci pot vedea conv cu el: %d\n", da);
       if(da == 1){
             bzero(raspuns, sizeof(raspuns));
             fflush (stdout);
@@ -296,7 +273,7 @@ int main (int argc, char *argv[])
             
             bzero(mesaj, sizeof(mesaj));
             read(0, &mesaj, sizeof(mesaj));
-            mesaj[strlen(mesaj) - 1] = '\0';//?????????
+            mesaj[strlen(mesaj) - 1] = '\0';
             printf("reply === %s\n", mesaj);
             if(write(sd, &mesaj, sizeof(mesaj)) <= 0){
               perror ("[client]Eroare la trimitere mesaj\n");
@@ -305,11 +282,9 @@ int main (int argc, char *argv[])
             
           }
           else printf("Numarul introdus nu este valid!\n");
-          
       }
       else //nu am cui raspunde 
          printf("- Nu s-a gasit vreun utilizator cu acest nume.\n");
-      
     }//if princp reply
     else{//comanda nerecunoscuta
       bzero(raspuns, sizeof(raspuns));
