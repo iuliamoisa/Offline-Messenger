@@ -89,18 +89,16 @@ int Inregistrare(char* nume_user, char* parola)
 	}
 	char sql[256];
 	sprintf(sql, "INSERT INTO UtilizatoriInregistrati (nume_user, parola) VALUES ('%s', '%s');", nume_user, parola);
-	int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
-	//allows an application to run multiple sql stmts without having to use a lot of C code
+	int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);//allows an application to run multiple sql stmts without having to use a lot of C code
 	if (rc != SQLITE_OK) {
         fprintf(stderr, "Eroare la inregistrare: %s\n", err_msg);
         sqlite3_free(err_msg);        
-        sqlite3_close(db);
     } 
     else {
 			ok = 1;
 			printf("Inregistrarea a avut loc cu succes!\n");
-			sqlite3_close(db);
 		}
+	sqlite3_close(db);
 	return ok;
 }
 
@@ -121,7 +119,6 @@ int Inserare_TabMesaje(char* expeditor, char* destinatar, char* mesaj){
 	if (rc != SQLITE_OK) {
         fprintf(stderr, "Eroare la inserare in Mesaje: %s\n", err_msg);
         sqlite3_free(err_msg);        
-        //sqlite3_close(db);
     } 
     else ok = 1;
 	sqlite3_close(db);
@@ -172,9 +169,7 @@ int UtilizatorExistentDeja(char* nume_user){
 	}
 	else {
 		sqlite3_prepare_v2(db, "SELECT nume_user, parola FROM UtilizatoriInregistrati WHERE nume_user = ?2;", -1, &res, NULL);
-		
 		sqlite3_bind_text(res, 2, nume_user, -1, SQLITE_STATIC);
-
 		if((rc = sqlite3_step(res)) == SQLITE_ROW)
 			ok = 1; //Acest utilizator exista deja!
 		sqlite3_finalize(res);
@@ -200,20 +195,14 @@ int Utilizatori(char utilizatori[200][200], int opt){
 			sql = "SELECT nume_user FROM UtilizatoriAutentificati;";
 		rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);		
 		 if (rc != SQLITE_OK) 
-        	//sqlite3_bind_text(res, 3, destinatar, -1, SQLITE_STATIC);//setez a 3a coloana=dest
-		 //else 
 			fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
 		
 		while (sqlite3_step(res) != SQLITE_DONE) {
 			const char* user = sqlite3_column_text(res, 0);
 			printf("%s\n ", user);
-			//const char* informatie = sqlite3_column_text(res, 1);
-			//printf("%s\n", informatie);
 			char* utilizator;
 			bzero(utilizator, sizeof(utilizator));
 			strcat(utilizator, user);
-			///strcat(utilizator," : ");
-			//strcat(utilizator, informatie);
 			strcat(utilizator," \n ");
 			strcpy(utilizatori[nr], utilizator);
 			nr++;
@@ -230,8 +219,7 @@ int Autentificare(char *nume_user, char *parola)
 	sqlite3_stmt *res; // a single sql statement
 	char *err_msg = 0;
 	int ok = 0;
-	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK)
-	{
+	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK){
 		fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 	}
@@ -239,18 +227,15 @@ int Autentificare(char *nume_user, char *parola)
 	sprintf(sql, "INSERT INTO UtilizatoriAutentificati (nume_user) VALUES ('%s');", nume_user);
 	int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
 	// allows an application to run multiple sql stmts without having to use a lot of C code
-	if (rc != SQLITE_OK)
-	{
+	if (rc != SQLITE_OK){
 		fprintf(stderr, "Eroare la autentificare: %s\n", err_msg);
 		sqlite3_free(err_msg);
-		sqlite3_close(db);
 	}
-	else
-	{
+	else{
 		ok = 1;
 		printf("Autentificarea a avut loc cu succes!\n");
-		sqlite3_close(db);
 	}
+	sqlite3_close(db);
 	return ok;
 }
 
@@ -259,18 +244,14 @@ int UtilizatorAutentificatDeja(char *nume_user)
 	int rc, ok = 0;
 	sqlite3_stmt *res;
 	sqlite3 *db;
-	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK)
-	{
+	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK){
 		fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 	}
-	else
-	{
+	else{
 		char* sql = "SELECT nume_user FROM UtilizatoriAutentificati WHERE nume_user = ?2;";
 		sqlite3_prepare_v2(db, sql, -1, &res, NULL);
-
 		sqlite3_bind_text(res, 2, nume_user, -1, SQLITE_STATIC);
-
 		if ((rc = sqlite3_step(res)) == SQLITE_ROW)
 			ok = 1; // utilizatorul se regaseste in tabela deja
 		sqlite3_finalize(res);
@@ -284,21 +265,18 @@ int DateValide(char *nume_user, char *parola)
 	sqlite3 *db;
 	sqlite3_stmt *res;
 	int ok = 0;
-	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK)
-	{
+	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK){
 		fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 	}
-	else
-	{
-		sqlite3_prepare_v2(db, "SELECT nume_user, parola FROM UtilizatoriInregistrati WHERE nume_user=?2;", -1, &res, NULL);
+	else{
+		char* sql = "SELECT nume_user, parola FROM UtilizatoriInregistrati WHERE nume_user=?2;";
+		sqlite3_prepare_v2(db, sql, -1, &res, NULL);
 		sqlite3_bind_text(res, 2, nume_user, -1, SQLITE_STATIC);
-		while (sqlite3_step(res) == SQLITE_ROW)
-		{
+		while (sqlite3_step(res) == SQLITE_ROW){
 			const char *numeExtras = sqlite3_column_text(res, 0);
 			const char *parolaExtrasa = sqlite3_column_text(res, 1);
-			if (strcmp(nume_user, numeExtras) == 0 && strcmp(parola, parolaExtrasa) == 0)
-			{
+			if (strcmp(nume_user, numeExtras) == 0 && strcmp(parola, parolaExtrasa) == 0){
 				ok = 1;
 				break;
 			}
@@ -308,22 +286,19 @@ int DateValide(char *nume_user, char *parola)
 	sqlite3_close(db);
 	return ok;
 }
-//ATENTIE LA INT RC=... SA VERIFIC ERORI LA FEL PT FIECARE DINTRE FUNCTII
+
 int Deconectare(char* nume_user){
 	int rc, ok = 0;
 	sqlite3 *db;
 	sqlite3_stmt * res;
-	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK)
-	{
+	if (sqlite3_open("OM_BazaDeDate.db", &db) != SQLITE_OK){
 		fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 	}
-	else
-	{
+	else{
 		char* sql = "DELETE FROM UtilizatoriAutentificati WHERE nume_user=?2;";
 		rc = sqlite3_prepare_v2(db, sql, -1, &res, NULL);
-		if (rc == SQLITE_OK)
-		{
+		if (rc == SQLITE_OK){
 			ok = 1;
 			sqlite3_bind_text(res, 2, nume_user, -1, SQLITE_STATIC);
 			sqlite3_step(res);
@@ -364,8 +339,7 @@ int Afisare_MesajeOffline(char *destinatar, char mesaje_offline[200][200]){
 			printf("%s: ", user);
 			const char* informatie = sqlite3_column_text(res, 2);
 			printf("%s\n", informatie);
-			char* mesaj;
-			//id. user : mesaj 
+			char* mesaj;//id. user : mesaj 
 			bzero(mesaj, sizeof(mesaj));
 			strcat(mesaj, id_mesaj);
 			strcat(mesaj, ". ");
@@ -439,12 +413,10 @@ void stergeMesajeOffline(char* destinatar){
 		fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 	}
-	else {
+	else{
 		char* sql = "DELETE FROM MesajeNoi WHERE destinatar=?3;";
 		int rc = sqlite3_prepare_v2(db, sql, -1, &res, NULL);
-		if (rc == SQLITE_OK)
-		{
-			printf("stergem mesajeeeeee\n");
+		if (rc == SQLITE_OK){
 			sqlite3_bind_text(res, 3, destinatar, -1, SQLITE_STATIC);
 			sqlite3_step(res);
 			sqlite3_finalize(res);
@@ -453,20 +425,44 @@ void stergeMesajeOffline(char* destinatar){
 		sqlite3_close(db);
 	}
 }
-int  maxID(char* a, char* b){//cel mai mare ID al unui msj intre a si b
+
+int maxID(char* a, char* b){//cel mai mare ID al unui msj intre a si b
 	sqlite3 *db;
-    char *err_msg = 0;
     sqlite3_stmt *res;
     int nr = 0;
     int rc = sqlite3_open("OM_BazaDeDate.db", &db);
     
     if (rc != SQLITE_OK) {
-        
         fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
         sqlite3_close(db);
     }
 	else {
 		char *sql = "SELECT mesaj_ID FROM Mesaje WHERE (expeditor=?2 AND destinatar=?3) OR (expeditor=?3 AND destinatar=?2) ORDER BY mesaj_ID DESC LIMIT 1;";
+		rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);		
+		 if (rc == SQLITE_OK) {
+			sqlite3_bind_text(res, 2, a, -1, SQLITE_STATIC);
+        	sqlite3_bind_text(res, 3, b, -1, SQLITE_STATIC);
+			sqlite3_step(res);
+			nr = sqlite3_column_int(res,0);
+			sqlite3_finalize(res);
+		 }
+		 else 
+			fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+	}
+	return nr;
+}
+int minID(char* a, char* b){//cel mai mic ID al unui msj intre a si b
+	sqlite3 *db;
+    sqlite3_stmt *res;
+    int nr = 0;
+    int rc = sqlite3_open("OM_BazaDeDate.db", &db);
+    
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+    }
+	else {
+		char *sql = "SELECT mesaj_ID FROM Mesaje WHERE (expeditor=?2 AND destinatar=?3) OR (expeditor=?3 AND destinatar=?2) ORDER BY mesaj_ID ASC LIMIT 1;";
 		rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);		
 		 if (rc == SQLITE_OK) {
 			sqlite3_bind_text(res, 2, a, -1, SQLITE_STATIC);
@@ -490,9 +486,7 @@ int main ()
   int pid;
   pthread_t th[100];    //Identificatorii thread-urilor care se vor crea
 	int i=0;
-  
 
-  /* crearea unui socket */
   if ((sd = socket (AF_INET, SOCK_STREAM, 0)) == -1)
     {
       perror ("[server]Eroare la socket().\n");
@@ -505,23 +499,17 @@ int main ()
   /* pregatirea structurilor de date */
   bzero (&server, sizeof (server));
   bzero (&from, sizeof (from));
-  
   /* umplem structura folosita de server */
-  /* stabilirea familiei de socket-uri */
     server.sin_family = AF_INET;	
-  /* acceptam orice adresa */
-    server.sin_addr.s_addr = htonl (INADDR_ANY);
-  /* utilizam un port utilizator */
-    server.sin_port = htons (PORT);
-  
-  /* atasam socketul */
+    server.sin_addr.s_addr = htonl (INADDR_ANY);// acceptam orice adresa 
+    server.sin_port = htons (PORT);// utilizam un port utilizator 
+
   if (bind (sd, (struct sockaddr *) &server, sizeof (struct sockaddr)) == -1)
     {
       perror ("[server]Eroare la bind().\n");
       return errno;
     }
 
-  /* punem serverul sa asculte daca vin clienti sa se conecteze */
   if (listen (sd, 10) == -1)
     {
       perror ("[server]Eroare la listen().\n");
@@ -539,27 +527,18 @@ int main ()
       fflush (stdout);
 
       // client= malloc(sizeof(int));
-      /* acceptam un client (stare blocanta pina la realizarea conexiunii) */
-      if ( (client = accept (sd, (struct sockaddr *) &from, &length)) < 0)
-		{
+      if ( (client = accept (sd, (struct sockaddr *) &from, &length)) < 0)// acceptam un client (stare blocanta pina la realizarea conexiunii) 
+	  {
 		perror ("[server]Eroare la accept().\n");
 		continue;
 		}
-	
-        /* s-a realizat conexiunea, se astepta mesajul */
-    
-	// int idThread; //id-ul threadului
-	// int cl; //descriptorul intors de accept
 
-		td=(struct thData*)malloc(sizeof(struct thData));	
-		td->idThread=i++;
-		td->cl=client;
+		td = (struct thData*)malloc(sizeof(struct thData));	
+		td->idThread = i++;// int idThread; //id-ul threadului
+		td->cl = client;	// int cl; //descriptorul intors de accept
 
 		pthread_create(&th[i], NULL, &treat, td);	    
-
-		/* Reduce CPU usage */
-					sleep(1);  
-					
+		sleep(1); // Reduce CPU usage  		
 		}//while    
 };		
 
@@ -571,10 +550,8 @@ static void *treat(void * arg)
 		fflush (stdout);		 
 		pthread_detach(pthread_self());		
 		raspunde((struct thData*)arg);
-		// am terminat cu acest client, inchidem conexiunea 
-		close ((intptr_t)arg);
+		close ((intptr_t)arg);// am terminat cu acest client, inchidem conexiunea 
 		return(NULL);	
-  		
 };
 
 
@@ -585,25 +562,18 @@ void raspunde(void *arg)
     char parola[25];
     int nr;
 	struct thData tdL; 
-	tdL= *((struct thData*)arg);
+	tdL = *((struct thData*)arg);
 	int autentificat = 0;
 	int pot_primi_mesaj, opt, ok, ok2;
 	while(1){
-		if (write (tdL.cl, &autentificat, sizeof(autentificat)) <= 0)
-					{
-					printf("[Thread %d] ",tdL.idThread);
-					perror ("[Thread]Eroare la trimitere stare catre client.\n");
-					}
-		//DACA SUNT AUTENTIFICAT, FAC O VERIFICARE DACA EXISTA MSJ NOI
-		//adica if(autentificat==1 && verificamsjnoi(...)==1){
-		//	read si write
-		//}
-//---------------
+		if (write (tdL.cl, &autentificat, sizeof(autentificat)) <= 0){
+			printf("[Thread %d] ",tdL.idThread);
+			perror ("[Thread]Eroare la trimitere stare catre client.\n");
+		}
 		bzero(comanda, sizeof(comanda));
 		bzero(nume_user, sizeof(nume_user));
 		bzero(parola, sizeof(parola));
 		fflush (stdout);
-		// citirea mesajului 
         if(read(tdL.cl, &comanda, sizeof(comanda)) <=0){
 			printf("[Thread %d]\n",tdL.idThread);
 			perror ("Eroare la citire comanda de la client.\n");
@@ -618,12 +588,10 @@ void raspunde(void *arg)
 				printf("[Thread %d]\n",tdL.idThread);
 				perror ("Eroare la citire username de la client.\n");
 			}
-			else printf("Numele primit este: %s\n", nume_user);
 			if(read(tdL.cl, &parola, sizeof(parola)) <=0){
 				printf("[Thread %d]\n",tdL.idThread);
 				perror ("Eroare la citire parola de la client.\n");
 			}
-			else printf("Parola primita este: %s\n\n", parola);
 
 			if(UtilizatorExistentDeja(nume_user) || autentificat == 1)//add ceva limita de nr caractere?ma mai gandesc
 			{//inreg nu e permisa daca exista deja date sau userul este deja autentificat!
@@ -661,16 +629,12 @@ void raspunde(void *arg)
 				{
 					printf("[Thread %d]\n", tdL.idThread);
 					perror("Eroare la citire username de la client.\n");
-				}
-			else printf("Numele primit este: %s\n", nume_user);
-			
+				}			
 			if (read(tdL.cl, &parola, sizeof(parola)) <= 0)
 				{
 					printf("[Thread %d]\n", tdL.idThread);
 					perror("Eroare la citire parola de la client.\n");
-				}
-			else printf("Parola primita este: %s\n\n", parola);
-			
+				}			
 			if(UtilizatorAutentificatDeja(nume_user) == 1 || autentificat == 1)
 			{
 				pot_primi_mesaj = 0;
@@ -691,7 +655,6 @@ void raspunde(void *arg)
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la write() catre client.\n");
 					}
-				
 			}
 			else { //poate avea loc autentif; verif daca datele sunt corecte 
 				if(DateValide(nume_user, parola) == 0)
@@ -735,7 +698,7 @@ void raspunde(void *arg)
 					if(nrmesajeoffline == 0){
 						bzero(raspuns, sizeof(raspuns));
 						fflush (stdout);
-						strcpy(raspuns, "Nu exista mesaje primite in timp ce nu erati online. \n");
+						strcpy(raspuns, "- Nu exista mesaje primite in timp ce erati offline. \n");
 						if (write(tdL.cl, &raspuns, sizeof(raspuns)) <= 0){
 							printf("[Thread %d] ", tdL.idThread);
 							perror("[Thread]Eroare la write() catre client.\n");
@@ -789,7 +752,6 @@ void raspunde(void *arg)
 //---------------------------------------TRIMITE MESAJ----------------------------------------		
 		else if(strcmp(comanda, "Trimite_Mesaj") == 0){
 			bzero(destinatar, sizeof(destinatar));
-			printf("Cineva vrea sa trimita un mesaj...\n");
 			if (read(tdL.cl, &destinatar, sizeof(destinatar)) <= 0)
 				{
 					printf("[Thread %d]\n", tdL.idThread);
@@ -809,7 +771,6 @@ void raspunde(void *arg)
 				} 
 			}
 			else {//utilizatorul exista; poate fi transmis mesajul
-			//username=expeditor; 
 				exista = 1;
 				if (write (tdL.cl, &exista, sizeof(exista)) <= 0)
 				{
@@ -825,13 +786,10 @@ void raspunde(void *arg)
 				}
 				else {
 					printf("Mesajul primit este: %s\n", mesaj);
-					if(Trimite_Mesaj(username, destinatar, mesaj) == 0)
-					{
+					if(Trimite_Mesaj(username, destinatar, mesaj) == 0)	//username=expeditor; 
 						printf("Mesajul nu s-a trimis\n");
-					}
-					else {
+					else 
 						printf("Mesajul s-a trimis\n");
-					}
 				}
 
 			}
@@ -881,8 +839,7 @@ void raspunde(void *arg)
 					strcat(raspuns, utilizatori_on[i]);
 				}
 
-				if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
-				{
+				if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0){
 					printf("[Thread %d] ",tdL.idThread);
 					perror ("[Thread]Eroare la write() catre client.\n");
 				}
@@ -894,8 +851,7 @@ void raspunde(void *arg)
 			if(read(tdL.cl, &nume_user, sizeof(nume_user)) <=0){
 					printf("[Thread %d]\n",tdL.idThread);
 					perror ("Eroare la citire username de la client.\n");
-				}
-				else printf("cu userul: %s\n", nume_user);
+			} else printf("cu userul: %s\n", nume_user);
 			ok = UtilizatorExistentDeja(nume_user);
 			
 			if (write (tdL.cl, &ok, sizeof(ok)) <= 0) //pot vedea istoricul sau nu
@@ -941,8 +897,7 @@ void raspunde(void *arg)
 		else if (strcmp(comanda, "Iesire") == 0){
 			bzero(raspuns, sizeof(raspuns));
 			fflush (stdout);
-			if (read(tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
-				{
+			if (read(tdL.cl, &raspuns, sizeof(raspuns)) <= 0){
 					printf("[Thread %d]\n", tdL.idThread);
 					perror("Eroare la citire info de la client.\n");
 				}
@@ -983,11 +938,12 @@ void raspunde(void *arg)
 				else {//am primit id, verific daca e valid
 					printf("Am citit id-ul mesajului: %s\n", idMesaj);
 					int idMax = maxID(username, nume_user);
-					printf("IDmax === %d\n", idMax);
+					int idMin = minID(username, nume_user);
+					printf("IDmax = %d\n", idMax);
+					printf("IDmin = %d\n", idMin);
 					idOK = 1;
-					if(idMax < atoi(idMesaj)) //nu exista id cu nr introdus
+					if(idMax < atoi(idMesaj) || atoi(idMesaj) < idMin) 
 						idOK = 0;
-					
 					if (write (tdL.cl, &idOK, sizeof(idOK)) <= 0)//comanda
 						{
 						printf("[Thread %d] ",tdL.idThread);
