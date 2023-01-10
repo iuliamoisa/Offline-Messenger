@@ -323,27 +323,27 @@ int Afisare_MesajeOffline(char *destinatar, char mesaje_offline[200][200]){
         sqlite3_close(db);
     }
 	else {
-		char *sql = "SELECT mesaj_ID, expeditor, continut_mesaj FROM MesajeNoi WHERE destinatar= ?3;";
+		char *sql = "SELECT expeditor, continut_mesaj FROM MesajeNoi WHERE destinatar= ?3;";
 		rc = sqlite3_prepare_v2(db, sql, -1, &res, 0);		
 		 if (rc == SQLITE_OK) 
         	sqlite3_bind_text(res, 3, destinatar, -1, SQLITE_STATIC);//setez a 3a coloana=dest
 		 else 
 			fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
 		while (sqlite3_step(res) != SQLITE_DONE) {
-			const int id = sqlite3_column_int(res, 0);
-			int lg = snprintf( NULL, 0, "%d", id);
-			char* id_mesaj = malloc( lg + 1 );
-			snprintf(id_mesaj, lg + 1, "%d", id );
-    		printf("%s. ", id_mesaj);
-			const char* user = sqlite3_column_text(res, 1);
+			//const int id = sqlite3_column_int(res, 0);
+			//int lg = snprintf( NULL, 0, "%d", id);
+			//char* id_mesaj = malloc( lg + 1 );
+			//snprintf(id_mesaj, lg + 1, "%d", id );
+    		//printf("%s. ", id_mesaj);
+			const char* user = sqlite3_column_text(res, 0);
 			printf("%s: ", user);
-			const char* informatie = sqlite3_column_text(res, 2);
+			const char* informatie = sqlite3_column_text(res, 1);
 			printf("%s\n", informatie);
 			char* mesaj;//id. user : mesaj 
 			bzero(mesaj, sizeof(mesaj));
-			strcat(mesaj, id_mesaj);
-			strcat(mesaj, ". ");
-			strcat(mesaj, user);
+			//strcat(mesaj, id_mesaj);
+			//strcat(mesaj, ". ");
+			strcpy(mesaj, user);
 			strcat(mesaj," : ");
 			strcat(mesaj, informatie);
 			strcat(mesaj," \n ");
@@ -978,7 +978,6 @@ void raspunde(void *arg)
 				}
 				
 			}//ok==1
-
 		}
 
 //---------------------------------------COMANDA NERECUNOSCUTA----------------------------------------		
