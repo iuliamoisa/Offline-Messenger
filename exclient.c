@@ -115,7 +115,7 @@ int main (int argc, char *argv[])
           perror ("[client]Eroare la read() de la server.\n");
           return errno;
         }
-          else printf("Pot primi mesaje: %d\n", da);
+          //else printf("Pot primi mesaje: %d\n", da);
 
         bzero(raspuns, sizeof(raspuns));//sunt deja autentificat?
         fflush (stdout);
@@ -181,7 +181,7 @@ int main (int argc, char *argv[])
       printf("\n");
       if(write(sd, &destinatar, sizeof(destinatar)) <= 0){
           perror ("[client]Eroare la trimitere nume destinatar spre server.\n");
-          return errno;
+          return errno; 
           }
      
       if (read (sd, &exista, sizeof(exista)) < 0){
@@ -267,7 +267,7 @@ int main (int argc, char *argv[])
             perror ("[client]Eroare la read() de la server.\n");
             return errno;
           }
-          printf("ID valid: %d\n", idOK);
+          //printf("ID valid: %d\n", idOK);
         if(idOK == 1){//trimit mesajul!!
             printf("- Introduceti mesajul: \n");
             
