@@ -52,7 +52,7 @@ int main (int argc, char *argv[])
       printf("--- Bine ati venit! ---\n");
       printf("- Alegeti una din optiuni: \n\n~ Inregistrare \n~ Autentificare \n~ Iesire \n\n~ ~ ~\n\n");
     }
-    else printf("\n- Alegeti una din optiuni: \n\n~ Trimite_Mesaj \n~ Utilizatori_Online \n~ Utilizatori \n~ Afiseaza_Istoric\n~ Raspunde_La_Mesaj\n~ Deconectare \n~ Iesire \n\n~ ~ ~\n\n");
+    else printf("\n- Alegeti una din optiuni: \n\n~ Trimite_Mesaj \n~ Utilizatori_Online \n~ Utilizatori \n~ Afiseaza_Istoric\n~ Raspunde_La_Mesaj\n~ Refresh (afisare mesaje noi)\n~ Deconectare \n~ Iesire \n\n~ ~ ~\n\n");
     bzero(comanda, sizeof(comanda));
     fflush (stdout);
     scanf("%s", comanda);
@@ -228,6 +228,7 @@ int main (int argc, char *argv[])
             }
               else printf("%s\n", raspuns);
       }
+      else printf("Nu exista acest utilizator in baza de date.\n");
     
     }
     else if(strcmp(comanda, "Raspunde_La_Mesaj") == 0){
@@ -274,7 +275,7 @@ int main (int argc, char *argv[])
             bzero(mesaj, sizeof(mesaj));
             read(0, &mesaj, sizeof(mesaj));
             mesaj[strlen(mesaj) - 1] = '\0';
-            printf("reply === %s\n", mesaj);
+            ///printf("reply === %s\n", mesaj);
             if(write(sd, &mesaj, sizeof(mesaj)) <= 0){
               perror ("[client]Eroare la trimitere mesaj\n");
               return errno;
@@ -286,6 +287,15 @@ int main (int argc, char *argv[])
       else //nu am cui raspunde 
          printf("- Nu s-a gasit vreun utilizator cu acest nume.\n");
     }//if princp reply
+    else if(strcmp(comanda, "Refresh") == 0){
+            bzero(raspuns, sizeof(raspuns));
+            fflush (stdout);
+            if (read (sd, &raspuns, sizeof(raspuns)) < 0){
+              perror ("[client]Eroare la read() de la server.\n");
+              return errno;
+            }
+              else printf("%s\n", raspuns);
+    }
     else{//comanda nerecunoscuta
       bzero(raspuns, sizeof(raspuns));
 			fflush (stdout);
