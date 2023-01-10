@@ -199,7 +199,7 @@ int Utilizatori(char utilizatori[200][200], int opt){
 		
 		while (sqlite3_step(res) != SQLITE_DONE) {
 			const char* user = sqlite3_column_text(res, 0);
-			printf("%s\n ", user);
+			//printf("%s\n ", user);
 			char* utilizator;
 			bzero(utilizator, sizeof(utilizator));
 			strcat(utilizator, user);
@@ -316,9 +316,7 @@ int Afisare_MesajeOffline(char *destinatar, char mesaje_offline[200][200]){
     sqlite3_stmt *res;
     int nr = 0;
     int rc = sqlite3_open("OM_BazaDeDate.db", &db);
-    
     if (rc != SQLITE_OK) {
-        
         fprintf(stderr, "Baza de date nu poate fi deschisa: %s\n", sqlite3_errmsg(db));
         sqlite3_close(db);
     }
@@ -330,19 +328,10 @@ int Afisare_MesajeOffline(char *destinatar, char mesaje_offline[200][200]){
 		 else 
 			fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
 		while (sqlite3_step(res) != SQLITE_DONE) {
-			//const int id = sqlite3_column_int(res, 0);
-			//int lg = snprintf( NULL, 0, "%d", id);
-			//char* id_mesaj = malloc( lg + 1 );
-			//snprintf(id_mesaj, lg + 1, "%d", id );
-    		//printf("%s. ", id_mesaj);
 			const char* user = sqlite3_column_text(res, 0);
-			printf("%s: ", user);
 			const char* informatie = sqlite3_column_text(res, 1);
-			printf("%s\n", informatie);
 			char* mesaj;//id. user : mesaj 
 			bzero(mesaj, sizeof(mesaj));
-			//strcat(mesaj, id_mesaj);
-			//strcat(mesaj, ". ");
 			strcpy(mesaj, user);
 			strcat(mesaj," : ");
 			strcat(mesaj, informatie);
@@ -383,13 +372,9 @@ int AfisareIstoric(char* a, char* b, char conversatii[200][200]){
 			int lg = snprintf( NULL, 0, "%d", id);
 			char* id_mesaj = malloc( lg + 1 );
 			snprintf(id_mesaj, lg + 1, "%d", id );
-			//printf("%s. ", id_mesaj);
 			const char* user = sqlite3_column_text(res, 1);
-			//printf("%s: ", user);
 			const char* informatie = sqlite3_column_text(res, 2);
-			//printf("%s\n", informatie);
 			char* mesaj;
-			//bzero(mesaj, sizeof(mesaj));
 			strcpy(mesaj, id_mesaj);
 			strcat(mesaj, ". ");
 			strcat(mesaj, user);
@@ -834,8 +819,7 @@ void raspunde(void *arg)
 				fflush (stdout);
 				strcat(raspuns, "-- Utilizatorii online sunt:");
 				for(int i = 0; i < nr_useri_on; i++){
-					strcat(raspuns, "\n");
-					//add nr utilizatorului in fata; un strcpy 
+					strcat(raspuns, "\n");\
 					strcat(raspuns, utilizatori_on[i]);
 				}
 
@@ -979,7 +963,36 @@ void raspunde(void *arg)
 				
 			}//ok==1
 		}
-
+//---------------------------------------RASPUNDE LA UN ANUMIT MESAJ----------------------------------------		
+		else if (strcmp(comanda, "Refresh") == 0){
+					char mesaje_noi[200][200];
+					int nrmesajenoi = Afisare_MesajeOffline(username, mesaje_noi);
+					printf("Nr mesaje primite = %d\n", nrmesajenoi);
+					if(nrmesajenoi == 0){
+						bzero(raspuns, sizeof(raspuns));
+						fflush (stdout);
+						strcpy(raspuns, "- Nu exista mesaje noi! \n");
+						if (write(tdL.cl, &raspuns, sizeof(raspuns)) <= 0){
+							printf("[Thread %d] ", tdL.idThread);
+							perror("[Thread]Eroare la write() catre client.\n");
+						}
+					}
+					else {
+						bzero(raspuns, sizeof(raspuns));
+						fflush (stdout);
+						strcat(raspuns, "- Ati primit: \n");
+						for(int i = 0; i < nrmesajenoi; i++){
+							strcat(raspuns,"\n");
+							strcat(raspuns,mesaje_noi[i]);
+						}
+						if (write (tdL.cl, &raspuns, sizeof(raspuns)) <= 0)
+						{
+							printf("[Thread %d] ",tdL.idThread);
+							perror ("[Thread]Eroare la write() catre client.\n");
+						}
+						stergeMesajeOffline(username);
+					}
+		}
 //---------------------------------------COMANDA NERECUNOSCUTA----------------------------------------		
 		else { //alta comanda
 			printf("Comanda neidentificata.\n");
