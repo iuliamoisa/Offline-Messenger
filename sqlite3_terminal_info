@@ -1,0 +1,41 @@
+gcc exclient.c -lpthread -o c
+./c 127.0.0.1 2908
+
+gcc exserv.c -pthread -o s -lsqlite3
+./s
+
+
+
+iulia@iulia-ZenBook-UX425IA-UM425IA:~/Desktop/retele de calc$ sqlite3
+SQLite version 3.31.1 2020-01-27 19:55:54
+Enter ".help" for usage hints.
+Connected to a transient in-memory database.
+Use ".open FILENAME" to reopen on a persistent database.
+sqlite> .open OM_BazaDeDate.db
+sqlite> .tables
+UtilizatoriAutentificati  UtilizatoriInregistrati 
+sqlite> .schema UtilizatoriInregistrati
+CREATE TABLE UtilizatoriInregistrati (user_ID INTEGER PRIMARY KEY AUTOINCREMENT, nume_user varchar(100), parola varchar(100));
+.header on
+sqlite> .mode column
+sqlite> pragma table_info('UtilizatoriInregistrati');
+cid         name        type        notnull     dflt_value  pk        
+----------  ----------  ----------  ----------  ----------  ----------
+0           user_ID     INTEGER     0                       1         
+1           nume_user   varchar(10  0                       0         
+2           parola      varchar(10  0                       0         
+
+
+sqlite> .mode column
+sqlite> .headers on
+sqlite> .width 12 -6
+sqlite> select * from UtilizatoriInregistrati;
+
+
+
+
+
+
+
+the function sqlite3_exec is used to run any command that doesn't return data, including updates,inserts and deletes. Retrieving data from the database is little more involved. And the function sqlite3_prepare_v2 can used for SELECT (in SQL). In common, create table often use the first one.
+
